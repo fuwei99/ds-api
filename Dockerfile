@@ -45,11 +45,9 @@ USER ds2api
 FROM busybox-tools AS dist-extract
 ARG TARGETARCH
 COPY dist/docker-input/linux_amd64.tar.gz /tmp/ds2api_linux_amd64.tar.gz
-COPY dist/docker-input/linux_arm64.tar.gz /tmp/ds2api_linux_arm64.tar.gz
 RUN set -eux; \
     case "${TARGETARCH}" in \
       amd64) ARCHIVE="/tmp/ds2api_linux_amd64.tar.gz" ;; \
-      arm64) ARCHIVE="/tmp/ds2api_linux_arm64.tar.gz" ;; \
       *) echo "unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
     esac; \
     tar -xzf "${ARCHIVE}" -C /tmp; \

@@ -66,10 +66,6 @@ jobs:
           TAG="${RELEASE_TAG}"
           mkdir -p dist/docker-input
           cp "dist/ds2api_${TAG}_linux_amd64.tar.gz" "dist/docker-input/linux_amd64.tar.gz"
-          cp "dist/ds2api_${TAG}_linux_arm64.tar.gz" "dist/docker-input/linux_arm64.tar.gz"
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -119,7 +115,7 @@ jobs:
           file: ./Dockerfile
           target: runtime-from-dist
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags: ${{ steps.meta_release.outputs.tags }}
           labels: ${{ steps.meta_release.outputs.labels }}
           cache-from: type=gha
@@ -137,15 +133,7 @@ jobs:
             --output type=docker,dest="dist/ds2api_${TAG}_docker_linux_amd64.tar" \
             .
 
-          docker buildx build \
-            --platform linux/arm64 \
-            --target runtime-from-dist \
-            --cache-from type=gha \
-            --output type=docker,dest="dist/ds2api_${TAG}_docker_linux_arm64.tar" \
-            .
-
           gzip -f "dist/ds2api_${TAG}_docker_linux_amd64.tar"
-          gzip -f "dist/ds2api_${TAG}_docker_linux_arm64.tar"
 
       - name: Generate checksums
         run: |

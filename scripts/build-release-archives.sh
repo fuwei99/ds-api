@@ -29,7 +29,9 @@ build_one() {
       go build -buildvcs=false -trimpath -ldflags="-s -w -X ds2api/internal/version.BuildVersion=${build_version}" -o "${stage}/${bin}" ./cmd/ds2api
   fi
 
-  cp config.example.json .env.example LICENSE README.MD README.en.md "${stage}/"
+  for f in config.example.json .env.example LICENSE README.MD; do
+    [ -f "$f" ] && cp "$f" "${stage}/"
+  done
   cp -R static/admin "${stage}/static/admin"
 
   if [[ "$goos" == "windows" ]]; then
