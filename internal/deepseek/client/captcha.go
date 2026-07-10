@@ -99,7 +99,7 @@ func challengeFromMap(m map[string]any) *CaptchaChallenge {
 	hasCaptchaKeyword := captchaTerms.MatchString(strings.TrimSpace(msgText))
 	hasFailureCode := bizCode != 0
 
-	if imageURL == "" && instruction == "" && !(hasFailureCode && hasCaptchaKeyword) {
+	if imageURL == "" && instruction == "" && (!hasFailureCode || !hasCaptchaKeyword) {
 		return nil
 	}
 

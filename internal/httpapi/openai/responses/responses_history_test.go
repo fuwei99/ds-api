@@ -13,6 +13,7 @@ import (
 
 	"ds2api/internal/auth"
 	"ds2api/internal/chathistory"
+	"ds2api/internal/config"
 	dsclient "ds2api/internal/deepseek/client"
 )
 
@@ -51,6 +52,11 @@ func (d *responsesHistoryDS) DeleteAllSessionsForToken(context.Context, string) 
 
 func TestResponsesRecordsResponseHistory(t *testing.T) {
 	store, resolver := newDirectTokenResolver(t)
+	enabled := true
+	_ = store.Update(func(c *config.Config) error {
+		c.CurrentInputFile = config.CurrentInputFileConfig{Enabled: &enabled}
+		return nil
+	})
 	historyStore := chathistory.New(filepath.Join(t.TempDir(), "history.json"))
 	ds := &responsesHistoryDS{}
 	h := &Handler{

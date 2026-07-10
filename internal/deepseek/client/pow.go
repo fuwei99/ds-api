@@ -89,16 +89,6 @@ func (c *powChallengeCache) set(accountID, targetPath string, challenge map[stri
 	c.entries[c.key(accountID, targetPath)] = powChallengeEntry{challenge: challenge}
 }
 
-func (c *powChallengeCache) clear(accountID string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	for k := range c.entries {
-		if len(k) > len(accountID) && k[:len(accountID)] == accountID && k[len(accountID)] == ':' {
-			delete(c.entries, k)
-		}
-	}
-}
-
 func isFreshChallenge(challenge map[string]any) bool {
 	if challenge == nil {
 		return false
