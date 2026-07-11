@@ -69,6 +69,9 @@ func (h *Handler) ChatCompletions(w http.ResponseWriter, r *http.Request) {
 		writeOpenAIInlineFileError(w, err)
 		return
 	}
+	if !h.Auth.ToolsEnabledForRequest(r) {
+		delete(req, "tools")
+	}
 	stdReq, err := promptcompat.NormalizeOpenAIChatRequest(h.Store, req, requestTraceID(r))
 	if err != nil {
 		writeOpenAIError(w, http.StatusBadRequest, err.Error())

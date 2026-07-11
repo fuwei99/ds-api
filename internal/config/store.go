@@ -11,13 +11,14 @@ import (
 )
 
 type Store struct {
-	mu      sync.RWMutex
-	cfg     Config
-	path    string
-	fromEnv bool
-	keyMap  map[string]struct{} // O(1) API key lookup index
-	accMap  map[string]int      // O(1) account lookup: identifier -> slice index
-	accTest map[string]string   // runtime-only account test status cache
+	mu          sync.RWMutex
+	cfg         Config
+	path        string
+	fromEnv     bool
+	keyMap      map[string]struct{} // O(1) API key lookup index
+	keyToolsMap map[string]bool     // O(1) API key tools_enabled lookup
+	accMap      map[string]int      // O(1) account lookup: identifier -> slice index
+	accTest     map[string]string   // runtime-only account test status cache
 }
 
 func LoadStore() *Store {
@@ -148,6 +149,12 @@ func (s *Store) HasAPIKey(k string) bool {
 	defer s.mu.RUnlock()
 	_, ok := s.keyMap[k]
 	return ok
+}
+
+func (s *Store) APIKeyToolsEnabled(k string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.keyToolsMap[k]
 }
 
 func (s *Store) Keys() []string {

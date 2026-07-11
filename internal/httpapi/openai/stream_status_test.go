@@ -38,6 +38,8 @@ func (streamStatusAuthStub) DetermineCaller(_ *http.Request) (*auth.RequestAuth,
 
 func (streamStatusAuthStub) Release(_ *auth.RequestAuth) {}
 
+func (streamStatusAuthStub) ToolsEnabledForRequest(_ *http.Request) bool { return true }
+
 type streamStatusDSStub struct {
 	resp *http.Response
 }

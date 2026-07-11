@@ -6,7 +6,7 @@ export function useAccountActions({ apiFetch, t, onMessage, onRefresh, config, f
     const [showAddAccount, setShowAddAccount] = useState(false)
     const [showEditAccount, setShowEditAccount] = useState(false)
     const [editingAccount, setEditingAccount] = useState(null)
-    const [newKey, setNewKey] = useState({ key: '', name: '', remark: '' })
+    const [newKey, setNewKey] = useState({ key: '', name: '', remark: '', tools_enabled: false })
     const [copiedKey, setCopiedKey] = useState(null)
     const [newAccount, setNewAccount] = useState({ name: '', remark: '', email: '', mobile: '', password: '' })
     const [editAccount, setEditAccount] = useState({ name: '', remark: '' })
@@ -20,7 +20,7 @@ export function useAccountActions({ apiFetch, t, onMessage, onRefresh, config, f
 
     const openAddKey = () => {
         setEditingKey(null)
-        setNewKey({ key: '', name: '', remark: '' })
+        setNewKey({ key: '', name: '', remark: '', tools_enabled: false })
         setShowAddKey(true)
     }
 
@@ -31,6 +31,7 @@ export function useAccountActions({ apiFetch, t, onMessage, onRefresh, config, f
             key: item.key || '',
             name: item.name || '',
             remark: item.remark || '',
+            tools_enabled: item.tools_enabled || false,
         })
         setShowAddKey(true)
     }
@@ -38,7 +39,7 @@ export function useAccountActions({ apiFetch, t, onMessage, onRefresh, config, f
     const closeKeyModal = () => {
         setShowAddKey(false)
         setEditingKey(null)
-        setNewKey({ key: '', name: '', remark: '' })
+        setNewKey({ key: '', name: '', remark: '', tools_enabled: false })
     }
 
     const openAddAccount = () => {
@@ -89,8 +90,8 @@ export function useAccountActions({ apiFetch, t, onMessage, onRefresh, config, f
                 : '/admin/keys'
             const method = isEditing ? 'PUT' : 'POST'
             const payload = isEditing
-                ? { name: newKey.name, remark: newKey.remark }
-                : { key: newKey.key.trim(), name: newKey.name, remark: newKey.remark }
+                ? { name: newKey.name, remark: newKey.remark, tools_enabled: newKey.tools_enabled }
+                : { key: newKey.key.trim(), name: newKey.name, remark: newKey.remark, tools_enabled: newKey.tools_enabled }
             if (!isEditing && !payload.key) {
                 return
             }

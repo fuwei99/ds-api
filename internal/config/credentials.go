@@ -64,9 +64,10 @@ func normalizeAPIKeys(items []APIKey) []APIKey {
 		}
 		seen[key] = struct{}{}
 		out = append(out, APIKey{
-			Key:    key,
-			Name:   strings.TrimSpace(item.Name),
-			Remark: strings.TrimSpace(item.Remark),
+			Key:          key,
+			Name:         strings.TrimSpace(item.Name),
+			Remark:       strings.TrimSpace(item.Remark),
+			ToolsEnabled: item.ToolsEnabled,
 		})
 	}
 	if len(out) == 0 {
@@ -92,9 +93,10 @@ func apiKeysFromStrings(keys []string, meta map[string]APIKey) []APIKey {
 		seen[key] = struct{}{}
 		if item, ok := meta[key]; ok {
 			out = append(out, APIKey{
-				Key:    key,
-				Name:   strings.TrimSpace(item.Name),
-				Remark: strings.TrimSpace(item.Remark),
+				Key:          key,
+				Name:         strings.TrimSpace(item.Name),
+				Remark:       strings.TrimSpace(item.Remark),
+				ToolsEnabled: item.ToolsEnabled,
 			})
 			continue
 		}
@@ -138,9 +140,10 @@ func apiKeyMap(items []APIKey) map[string]APIKey {
 			continue
 		}
 		out[key] = APIKey{
-			Key:    key,
-			Name:   strings.TrimSpace(item.Name),
-			Remark: strings.TrimSpace(item.Remark),
+			Key:          key,
+			Name:         strings.TrimSpace(item.Name),
+			Remark:       strings.TrimSpace(item.Remark),
+			ToolsEnabled: item.ToolsEnabled,
 		}
 	}
 	return out
@@ -153,6 +156,7 @@ func equalAPIKeys(a, b []APIKey) bool {
 	return slices.EqualFunc(a, b, func(x, y APIKey) bool {
 		return strings.TrimSpace(x.Key) == strings.TrimSpace(y.Key) &&
 			strings.TrimSpace(x.Name) == strings.TrimSpace(y.Name) &&
-			strings.TrimSpace(x.Remark) == strings.TrimSpace(y.Remark)
+			strings.TrimSpace(x.Remark) == strings.TrimSpace(y.Remark) &&
+			x.ToolsEnabled == y.ToolsEnabled
 	})
 }

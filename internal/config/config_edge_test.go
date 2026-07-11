@@ -719,3 +719,59 @@ func TestClaudeModelsResponse(t *testing.T) {
 		t.Fatal("expected non-empty models list")
 	}
 }
+
+func TestStoreAPIKeyToolsEnabledIndex(t *testing.T) {
+	t.Setenv("DS2API_CONFIG_JSON", `{
+		"api_keys":[
+			{"key":"k1","name":"a"},
+			{"key":"k2","name":"b","tools_enabled":true},
+			{"key":"k3","name":"c","tools_enabled":false}
+		],
+		"accounts":[]
+	}`)
+	store := LoadStore()
+
+	if store.APIKeyToolsEnabled("k1") {
+		t.Fatalf("k1 should default to false")
+	}
+	if !store.APIKeyToolsEnabled("k2") {
+		t.Fatalf("k2 should be true")
+	}
+	if store.APIKeyToolsEnabled("k3") {
+		t.Fatalf("k3 should be false")
+	}
+	if store.APIKeyToolsEnabled("nonexistent") {
+		t.Fatalf("nonexistent key should return false")
+	}
+}
+
+func TestNormalizeAPIKeysPreservesToolsEnabled(t *testing.T) {
+	cfg := Config{
+		APIKeys: []APIKey{
+			{Key: "k1", Name: "a", ToolsEnabled: true},
+			{Key: "k2", Name: "b"},
+		},
+	}
+	cfg.NormalizeCredentials()
+
+	if len(cfg.APIKeys) != 2 {
+		t.Fatalf("unexpected api keys: %#v", cfg.APIKeys)
+	}
+	if cfg.APIKeys[0].ToolsEnabled != true {
+		t.Fatalf("tools_enabled was lost during normalize: %#v", cfg.APIKeys[0])
+	}
+	if cfg.APIKeys[1].ToolsEnabled != false {
+		t.Fatalf("tools_enabled should default false: %#v", cfg.APIKeys[1])
+	}
+}
+
+func TestEqualAPIKeysDetectsToolsEnabledDifference(t *testing.T) {
+	a := []APIKey{{Key: "k1", ToolsEnabled: true}}
+	b := []APIKey{{Key: "k1", ToolsEnabled: false}}
+	if equalAPIKeys(a, b) {
+		t.Fatalf("equalAPIKeys should detect tools_enabled difference")
+	}
+	if !equalAPIKeys(a, a) {
+		t.Fatalf("equalAPIKeys should return true for identical slices")
+	}
+}

@@ -61,6 +61,8 @@ func (streamStatusManagedAuthStub) DetermineCaller(_ *http.Request) (*auth.Reque
 
 func (streamStatusManagedAuthStub) Release(_ *auth.RequestAuth) {}
 
+func (streamStatusManagedAuthStub) ToolsEnabledForRequest(_ *http.Request) bool { return true }
+
 func TestBuildOpenAICurrentInputContextTranscriptUsesNumberedHistorySections(t *testing.T) {
 	transcript := buildOpenAICurrentInputContextTranscript(historySplitTestMessages())
 

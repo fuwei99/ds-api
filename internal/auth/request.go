@@ -18,6 +18,8 @@ type ctxKey string
 
 const authCtxKey ctxKey = "auth_context"
 
+const toolsDisabledCtxKey ctxKey = "tools_disabled"
+
 var (
 	ErrUnauthorized = errors.New("unauthorized: missing auth token")
 	ErrNoAccount    = errors.New("no accounts configured or all accounts are busy")
@@ -149,6 +151,35 @@ func FromContext(ctx context.Context) (*RequestAuth, bool) {
 	v := ctx.Value(authCtxKey)
 	a, ok := v.(*RequestAuth)
 	return a, ok
+}
+
+// ToolsEnabledForRequest reports whether tool-call prompt injection should
+// happen for the caller behind req. Managed API keys with tools_enabled=false
+// disable injection; direct-token callers and missing/unknown keys keep the
+// default (enabled) behavior.
+func (r *Resolver) ToolsEnabledForRequest(req *http.Request) bool {
+	callerKey := extractCallerToken(req)
+	if callerKey == "" {
+		return true
+	}
+	if r == nil || r.Store == nil || !r.Store.HasAPIKey(callerKey) {
+		return true
+	}
+	return r.Store.APIKeyToolsEnabled(callerKey)
+}
+
+// WithToolsDisabled stores a flag in the context so downstream consumers
+// (e.g. current-input-file tool transcript generation) can skip tool handling.
+func WithToolsDisabled(ctx context.Context) context.Context {
+	return context.WithValue(ctx, toolsDisabledCtxKey, true)
+}
+
+// ToolsDisabledFromContext returns true when the caller's API key has
+// tools_enabled=false and the request context was marked accordingly.
+func ToolsDisabledFromContext(ctx context.Context) bool {
+	v := ctx.Value(toolsDisabledCtxKey)
+	b, _ := v.(bool)
+	return b
 }
 
 func (r *Resolver) loginAndPersist(ctx context.Context, a *RequestAuth) error {

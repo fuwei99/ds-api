@@ -12,6 +12,7 @@ import (
 type AuthResolver interface {
 	Determine(req *http.Request) (*auth.RequestAuth, error)
 	Release(a *auth.RequestAuth)
+	ToolsEnabledForRequest(req *http.Request) bool
 }
 
 type DeepSeekCaller interface {

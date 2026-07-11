@@ -40,6 +40,8 @@ func (managedFilesAuthStub) DetermineCaller(_ *http.Request) (*auth.RequestAuth,
 
 func (managedFilesAuthStub) Release(_ *auth.RequestAuth) {}
 
+func (managedFilesAuthStub) ToolsEnabledForRequest(_ *http.Request) bool { return true }
+
 type filesRouteDSStub struct {
 	lastReq dsclient.UploadFileRequest
 	upload  *dsclient.UploadFileResult

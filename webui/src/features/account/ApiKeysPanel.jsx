@@ -107,6 +107,14 @@ export default function ApiKeysPanel({
                                         {maskSecret(item.key)}
                                     </button>
                                     <div className="text-sm text-muted-foreground truncate">{item.remark || '-'}</div>
+                                    <span className={clsx(
+                                        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium w-fit",
+                                        item.tools_enabled
+                                            ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                                            : "bg-muted text-muted-foreground"
+                                    )}>
+                                        {item.tools_enabled ? t('accountManager.toolsEnabledOn') : t('accountManager.toolsEnabledOff')}
+                                    </span>
                                     {copiedKey === item.key && (
                                         <span className="text-xs text-green-500 animate-pulse">{t('accountManager.copied')}</span>
                                     )}

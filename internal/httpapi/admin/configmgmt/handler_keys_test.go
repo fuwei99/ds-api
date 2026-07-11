@@ -74,3 +74,57 @@ func TestKeyEndpointsPreserveStructuredMetadata(t *testing.T) {
 		t.Fatalf("unexpected legacy keys after delete: %#v", snap.Keys)
 	}
 }
+
+func TestKeyEndpointsPersistToolsEnabled(t *testing.T) {
+	h := newAdminTestHandler(t, `{
+		"api_keys":[{"key":"k1","name":"primary","remark":"prod"}]
+	}`)
+
+	r := chi.NewRouter()
+	r.Post("/admin/keys", h.addKey)
+	r.Put("/admin/keys/{key}", h.updateKey)
+
+	addBody := []byte(`{"key":"k2","name":"secondary","remark":"staging","tools_enabled":true}`)
+	addReq := httptest.NewRequest(http.MethodPost, "/admin/keys", bytes.NewReader(addBody))
+	addRec := httptest.NewRecorder()
+	r.ServeHTTP(addRec, addReq)
+	if addRec.Code != http.StatusOK {
+		t.Fatalf("add status=%d body=%s", addRec.Code, addRec.Body.String())
+	}
+
+	snap := h.Store.Snapshot()
+	if len(snap.APIKeys) != 2 {
+		t.Fatalf("unexpected api keys after add: %#v", snap.APIKeys)
+	}
+	if snap.APIKeys[0].ToolsEnabled != false {
+		t.Fatalf("existing key tools_enabled should default false: %#v", snap.APIKeys[0])
+	}
+	if snap.APIKeys[1].ToolsEnabled != true {
+		t.Fatalf("new key tools_enabled was not persisted: %#v", snap.APIKeys[1])
+	}
+	if !h.Store.APIKeyToolsEnabled("k2") {
+		t.Fatalf("APIKeyToolsEnabled should return true for k2")
+	}
+	if h.Store.APIKeyToolsEnabled("k1") {
+		t.Fatalf("APIKeyToolsEnabled should return false for k1")
+	}
+
+	updateBody := map[string]any{
+		"tools_enabled": true,
+	}
+	updateBytes, _ := json.Marshal(updateBody)
+	updateReq := httptest.NewRequest(http.MethodPut, "/admin/keys/k1", bytes.NewReader(updateBytes))
+	updateRec := httptest.NewRecorder()
+	r.ServeHTTP(updateRec, updateReq)
+	if updateRec.Code != http.StatusOK {
+		t.Fatalf("update status=%d body=%s", updateRec.Code, updateRec.Body.String())
+	}
+
+	snap = h.Store.Snapshot()
+	if snap.APIKeys[0].ToolsEnabled != true {
+		t.Fatalf("tools_enabled update did not persist: %#v", snap.APIKeys[0])
+	}
+	if !h.Store.APIKeyToolsEnabled("k1") {
+		t.Fatalf("APIKeyToolsEnabled should return true for k1 after update")
+	}
+}

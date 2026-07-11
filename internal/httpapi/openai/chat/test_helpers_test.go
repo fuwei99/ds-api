@@ -65,6 +65,8 @@ func (streamStatusAuthStub) DetermineCaller(_ *http.Request) (*auth.RequestAuth,
 
 func (streamStatusAuthStub) Release(_ *auth.RequestAuth) {}
 
+func (streamStatusAuthStub) ToolsEnabledForRequest(_ *http.Request) bool { return true }
+
 type streamStatusManagedAuthStub struct{}
 
 func (streamStatusManagedAuthStub) Determine(_ *http.Request) (*auth.RequestAuth, error) {
@@ -82,6 +84,8 @@ func (streamStatusManagedAuthStub) DetermineCaller(_ *http.Request) (*auth.Reque
 }
 
 func (streamStatusManagedAuthStub) Release(_ *auth.RequestAuth) {}
+
+func (streamStatusManagedAuthStub) ToolsEnabledForRequest(_ *http.Request) bool { return true }
 
 type streamStatusDSStub struct {
 	resp *http.Response

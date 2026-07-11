@@ -78,6 +78,8 @@ func TestClaudeDirectRecordsResponseHistory(t *testing.T) {
 
 func (claudeCurrentInputAuth) Release(*auth.RequestAuth) {}
 
+func (claudeCurrentInputAuth) ToolsEnabledForRequest(_ *http.Request) bool { return true }
+
 type claudeCurrentInputDS struct {
 	uploads []dsclient.UploadFileRequest
 	payload map[string]any

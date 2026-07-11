@@ -51,6 +51,9 @@ func FieldString(m map[string]any, key string) string {
 func FieldStringOptional(m map[string]any, key string) (string, bool) {
 	return fieldStringOptional(m, key)
 }
+func FieldBoolOptional(m map[string]any, key string) (bool, bool) {
+	return fieldBoolOptional(m, key)
+}
 func StatusOr(v int, d int) int { return statusOr(v, d) }
 func AccountMatchesIdentifier(acc config.Account, identifier string) bool {
 	return accountMatchesIdentifier(acc, identifier)
@@ -190,9 +193,10 @@ func toAPIKeys(v any) ([]config.APIKey, bool) {
 			}
 			seen[key] = struct{}{}
 			out = append(out, config.APIKey{
-				Key:    key,
-				Name:   fieldString(x, "name"),
-				Remark: fieldString(x, "remark"),
+				Key:          key,
+				Name:         fieldString(x, "name"),
+				Remark:       fieldString(x, "remark"),
+				ToolsEnabled: util.ToBool(x["tools_enabled"]),
 			})
 		default:
 			key := strings.TrimSpace(fmt.Sprintf("%v", item))
@@ -211,9 +215,10 @@ func toAPIKeys(v any) ([]config.APIKey, bool) {
 
 func normalizeAPIKeyForStorage(item config.APIKey) config.APIKey {
 	return config.APIKey{
-		Key:    strings.TrimSpace(item.Key),
-		Name:   strings.TrimSpace(item.Name),
-		Remark: strings.TrimSpace(item.Remark),
+		Key:          strings.TrimSpace(item.Key),
+		Name:         strings.TrimSpace(item.Name),
+		Remark:       strings.TrimSpace(item.Remark),
+		ToolsEnabled: item.ToolsEnabled,
 	}
 }
 
@@ -272,13 +277,16 @@ func mergeAPIKeyRecord(existing, incoming config.APIKey) config.APIKey {
 	if existing.Key == "" {
 		return incoming
 	}
+	var keep config.APIKey
 	if apiKeyHasMetadata(existing) {
-		return existing
+		keep = existing
+	} else if apiKeyHasMetadata(incoming) {
+		keep = incoming
+	} else {
+		keep = existing
 	}
-	if apiKeyHasMetadata(incoming) {
-		return incoming
-	}
-	return existing
+	keep.ToolsEnabled = existing.ToolsEnabled || incoming.ToolsEnabled
+	return keep
 }
 
 func fieldString(m map[string]any, key string) string {
@@ -295,6 +303,14 @@ func fieldStringOptional(m map[string]any, key string) (string, bool) {
 		return "", false
 	}
 	return strings.TrimSpace(fmt.Sprintf("%v", v)), true
+}
+
+func fieldBoolOptional(m map[string]any, key string) (bool, bool) {
+	v, ok := m[key]
+	if !ok || v == nil {
+		return false, false
+	}
+	return util.ToBool(v), true
 }
 
 func statusOr(v int, d int) int {

@@ -68,6 +68,21 @@ export default function AddKeyModal({ show, t, editingKey, newKey, setNewKey, lo
                             onChange={e => setNewKey({ ...newKey, remark: e.target.value })}
                         />
                     </div>
+                    <div className="pt-1">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                            <button
+                                type="button"
+                                role="switch"
+                                aria-checked={!!newKey.tools_enabled}
+                                onClick={() => setNewKey({ ...newKey, tools_enabled: !newKey.tools_enabled })}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${newKey.tools_enabled ? 'bg-primary' : 'bg-muted-foreground/30'}`}
+                            >
+                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${newKey.tools_enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                            </button>
+                            <span className="text-sm font-medium">{t('accountManager.toolsEnabledLabel')}</span>
+                        </label>
+                        <p className="text-xs text-amber-500/90 mt-1.5">{t('accountManager.toolsEnabledHint')}</p>
+                    </div>
                     <div className="flex justify-end gap-2 pt-2">
                         <button onClick={onClose} className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors text-sm font-medium">{t('actions.cancel')}</button>
                         <button onClick={onAdd} disabled={loading} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium disabled:opacity-50">

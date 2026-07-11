@@ -13,6 +13,8 @@ import (
 type ConfigStore interface {
 	Snapshot() config.Config
 	Keys() []string
+	HasAPIKey(k string) bool
+	APIKeyToolsEnabled(k string) bool
 	Accounts() []config.Account
 	FindAccount(identifier string) (config.Account, bool)
 	UpdateAccountToken(identifier, token string) error

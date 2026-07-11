@@ -69,6 +69,9 @@ func (h *Handler) handleGeminiDirect(w http.ResponseWriter, r *http.Request, str
 		writeGeminiError(w, http.StatusBadRequest, "invalid json")
 		return true
 	}
+	if !h.Auth.ToolsEnabledForRequest(r) {
+		delete(req, "tools")
+	}
 	stdReq, err := normalizeGeminiRequest(h.Store, routeModel, req, stream)
 	if err != nil {
 		writeGeminiError(w, http.StatusBadRequest, err.Error())

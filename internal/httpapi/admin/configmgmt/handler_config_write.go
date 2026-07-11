@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"ds2api/internal/config"
+	"ds2api/internal/util"
 )
 
 func (h *Handler) updateConfig(w http.ResponseWriter, r *http.Request) {
@@ -82,6 +83,7 @@ func (h *Handler) addKey(w http.ResponseWriter, r *http.Request) {
 	key = strings.TrimSpace(key)
 	name := fieldString(req, "name")
 	remark := fieldString(req, "remark")
+	toolsEnabled := util.ToBool(req["tools_enabled"])
 	if key == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"detail": "Key 不能为空"})
 		return
@@ -92,7 +94,7 @@ func (h *Handler) addKey(w http.ResponseWriter, r *http.Request) {
 				return fmt.Errorf("key 已存在")
 			}
 		}
-		c.APIKeys = append(c.APIKeys, config.APIKey{Key: key, Name: name, Remark: remark})
+		c.APIKeys = append(c.APIKeys, config.APIKey{Key: key, Name: name, Remark: remark, ToolsEnabled: toolsEnabled})
 		return nil
 	})
 	if err != nil {
@@ -116,6 +118,7 @@ func (h *Handler) updateKey(w http.ResponseWriter, r *http.Request) {
 	}
 	name, nameOK := fieldStringOptional(req, "name")
 	remark, remarkOK := fieldStringOptional(req, "remark")
+	toolsEnabled, toolsEnabledOK := fieldBoolOptional(req, "tools_enabled")
 
 	err := h.Store.Update(func(c *config.Config) error {
 		idx := -1
@@ -133,6 +136,9 @@ func (h *Handler) updateKey(w http.ResponseWriter, r *http.Request) {
 		}
 		if remarkOK {
 			c.APIKeys[idx].Remark = remark
+		}
+		if toolsEnabledOK {
+			c.APIKeys[idx].ToolsEnabled = toolsEnabled
 		}
 		return nil
 	})

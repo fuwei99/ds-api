@@ -70,6 +70,9 @@ func (h *Handler) handleClaudeDirect(w http.ResponseWriter, r *http.Request) boo
 		writeClaudeError(w, http.StatusBadRequest, "invalid json")
 		return true
 	}
+	if !h.Auth.ToolsEnabledForRequest(r) {
+		delete(req, "tools")
+	}
 	norm, err := normalizeClaudeRequest(h.Store, req)
 	if err != nil {
 		writeClaudeError(w, http.StatusBadRequest, err.Error())

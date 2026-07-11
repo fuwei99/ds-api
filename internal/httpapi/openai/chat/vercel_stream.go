@@ -61,6 +61,9 @@ func (h *Handler) handleVercelStreamPrepare(w http.ResponseWriter, r *http.Reque
 		writeOpenAIError(w, http.StatusBadRequest, "stream must be true")
 		return
 	}
+	if !h.Auth.ToolsEnabledForRequest(r) {
+		delete(req, "tools")
+	}
 	stdReq, err := promptcompat.NormalizeOpenAIChatRequest(h.Store, req, requestTraceID(r))
 	if err != nil {
 		writeOpenAIError(w, http.StatusBadRequest, err.Error())

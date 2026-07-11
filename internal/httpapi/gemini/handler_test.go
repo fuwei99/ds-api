@@ -46,6 +46,8 @@ func (m testGeminiAuth) Determine(_ *http.Request) (*auth.RequestAuth, error) {
 
 func (testGeminiAuth) Release(_ *auth.RequestAuth) {}
 
+func (testGeminiAuth) ToolsEnabledForRequest(_ *http.Request) bool { return true }
+
 //nolint:unused // reserved test double for native Gemini DS-call path coverage.
 type testGeminiDS struct {
 	resp        *http.Response

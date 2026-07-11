@@ -82,6 +82,10 @@ func (h *Handler) Responses(w http.ResponseWriter, r *http.Request) {
 		writeOpenAIInlineFileError(w, err)
 		return
 	}
+	if !h.Auth.ToolsEnabledForRequest(r) {
+		delete(req, "tools")
+		delete(req, "tool_choice")
+	}
 	traceID := requestTraceID(r)
 	stdReq, err := promptcompat.NormalizeOpenAIResponsesRequest(h.Store, req, traceID)
 	if err != nil {

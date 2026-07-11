@@ -38,9 +38,10 @@ type Account struct {
 }
 
 type APIKey struct {
-	Key    string `json:"key"`
-	Name   string `json:"name,omitempty"`
-	Remark string `json:"remark,omitempty"`
+	Key          string `json:"key"`
+	Name         string `json:"name,omitempty"`
+	Remark       string `json:"remark,omitempty"`
+	ToolsEnabled bool   `json:"tools_enabled,omitempty"`
 }
 
 type Proxy struct {

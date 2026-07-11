@@ -4,8 +4,14 @@ package config
 func (s *Store) rebuildIndexes() {
 	prevStatus := s.accTest
 	s.keyMap = make(map[string]struct{}, len(s.cfg.Keys))
+	s.keyToolsMap = make(map[string]bool, len(s.cfg.APIKeys))
 	for _, k := range s.cfg.Keys {
 		s.keyMap[k] = struct{}{}
+	}
+	for _, item := range s.cfg.APIKeys {
+		if item.Key != "" {
+			s.keyToolsMap[item.Key] = item.ToolsEnabled
+		}
 	}
 	s.accMap = make(map[string]int, len(s.cfg.Accounts))
 	s.accTest = make(map[string]string, len(s.cfg.Accounts))
