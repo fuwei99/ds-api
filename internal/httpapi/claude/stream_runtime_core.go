@@ -48,6 +48,9 @@ type claudeStreamRuntime struct {
 	textEmitted        bool
 	ended              bool
 	upstreamErr        string
+	finalErrorStatus   int
+	finalErrorMessage  string
+	finalErrorCode     string
 	history            *responsehistory.Session
 }
 

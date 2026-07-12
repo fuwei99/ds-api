@@ -23,6 +23,12 @@ func (a Account) Identifier() string {
 	return ""
 }
 
+// IsEnabled reports whether the account is eligible for scheduling.
+// Disabled accounts are skipped by the pool and auto-disabled on upstream_unavailable.
+func (a Account) IsEnabled() bool {
+	return !a.Disabled
+}
+
 // NormalizePoolType 规范化账号号池类型，空值视为 default。
 func NormalizePoolType(poolType string) string {
 	switch strings.ToLower(strings.TrimSpace(poolType)) {

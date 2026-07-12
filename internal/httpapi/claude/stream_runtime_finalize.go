@@ -137,6 +137,9 @@ func (s *claudeStreamRuntime) finalize(stopReason string, deferEmptyOutput bool)
 	})
 	if outcome.ShouldFail {
 		if deferEmptyOutput {
+			s.finalErrorStatus = outcome.Error.Status
+			s.finalErrorMessage = outcome.Error.Message
+			s.finalErrorCode = outcome.Error.Code
 			return false
 		}
 		s.ended = true

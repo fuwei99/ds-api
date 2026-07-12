@@ -185,6 +185,7 @@ async function handleVercelStream(req, res, rawBody, payload) {
     const decoder = new TextDecoder();
     let buffered = '';
     let ended = false;
+    let lastEmptyDetail = null;
     const { sendFrame, sendDeltaFrame } = createChatCompletionEmitter({
       res,
       sessionID: responseID,
@@ -231,6 +232,7 @@ async function handleVercelStream(req, res, rawBody, payload) {
       }
       if (detected.length === 0 && !toolCallsEmitted && outputText.trim() === '') {
         if (options.deferEmpty && reason !== 'content_filter') {
+          lastEmptyDetail = upstreamEmptyOutputDetail(reason === 'content_filter', outputText, thinkingText);
           return false;
         }
         ended = true;
@@ -417,7 +419,8 @@ async function handleVercelStream(req, res, rawBody, payload) {
     let accountSwitchAttempted = false;
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const allowDeferEmpty = retryAttempts < EMPTY_OUTPUT_RETRY_MAX_ATTEMPTS || !accountSwitchAttempted;
+      const isUpstreamUnavailable = lastEmptyDetail && lastEmptyDetail.code === 'upstream_unavailable';
+      const allowDeferEmpty = retryAttempts < EMPTY_OUTPUT_RETRY_MAX_ATTEMPTS || !accountSwitchAttempted || isUpstreamUnavailable;
       const processed = await processStream(completionRes, allowDeferEmpty);
       if (processed.terminal) {
         return;
@@ -427,6 +430,30 @@ async function handleVercelStream(req, res, rawBody, payload) {
         return;
       }
       if (retryAttempts >= EMPTY_OUTPUT_RETRY_MAX_ATTEMPTS) {
+        if (isUpstreamUnavailable) {
+          const switched = await fetchStreamSwitch(req, leaseID, { disable: true });
+          if (switched.ok && switched.body && switched.body.payload && typeof switched.body.payload === 'object') {
+            completionPayload = switched.body.payload;
+            deepseekToken = asString(switched.body.deepseek_token) || deepseekToken;
+            currentPowHeader = asString(switched.body.pow_header) || currentPowHeader;
+            activeDeepSeekSessionID = asString(switched.body.session_id) || activeDeepSeekSessionID;
+            usagePrompt = finalPrompt;
+            lastEmptyDetail = null;
+            outputText = '';
+            thinkingText = '';
+            completionRes = await fetchCompletion(completionPayload);
+            if (completionRes === null) {
+              return;
+            }
+            if (!completionRes.ok || !completionRes.body) {
+              await finish('stop');
+              return;
+            }
+            continue;
+          }
+          await finish('stop');
+          return;
+        }
         if (!accountSwitchAttempted) {
           accountSwitchAttempted = true;
           const switched = await fetchStreamSwitch(req, leaseID);
@@ -436,6 +463,8 @@ async function handleVercelStream(req, res, rawBody, payload) {
             currentPowHeader = asString(switched.body.pow_header) || currentPowHeader;
             activeDeepSeekSessionID = asString(switched.body.session_id) || activeDeepSeekSessionID;
             usagePrompt = finalPrompt;
+            outputText = '';
+            thinkingText = '';
             completionRes = await fetchCompletion(completionPayload);
             if (completionRes === null) {
               return;

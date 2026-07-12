@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"ds2api/internal/assistantturn"
 	"ds2api/internal/auth"
 	"ds2api/internal/completionruntime"
 	"ds2api/internal/config"
@@ -430,6 +431,12 @@ func (h *Handler) handleClaudeStreamRealtimeWithRetry(w http.ResponseWriter, r *
 		},
 		OnRetryFailure: func(status int, message, code string) {
 			streamRuntime.sendErrorWithCode(status, strings.TrimSpace(message), code)
+		},
+		EmptyOutputError: func() *assistantturn.OutputError {
+			if streamRuntime.finalErrorCode == "" {
+				return nil
+			}
+			return &assistantturn.OutputError{Status: streamRuntime.finalErrorStatus, Message: streamRuntime.finalErrorMessage, Code: streamRuntime.finalErrorCode}
 		},
 	})
 }

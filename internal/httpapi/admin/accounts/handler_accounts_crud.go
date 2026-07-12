@@ -70,6 +70,7 @@ func (h *Handler) listAccounts(w http.ResponseWriter, r *http.Request) {
 			"has_token":     token != "",
 			"token_preview": maskSecretPreview(token),
 			"test_status":   testStatus,
+			"enabled":       acc.IsEnabled(),
 		})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"items": items, "total": total, "page": page, "page_size": pageSize, "total_pages": totalPages})
@@ -178,4 +179,45 @@ func (h *Handler) deleteAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	h.Pool.Reset()
 	writeJSON(w, http.StatusOK, map[string]any{"success": true, "total_accounts": len(h.Store.Snapshot().Accounts)})
+}
+
+func (h *Handler) toggleAccountEnabled(w http.ResponseWriter, r *http.Request) {
+	identifier := chi.URLParam(r, "identifier")
+	if decoded, err := url.PathUnescape(identifier); err == nil {
+		identifier = decoded
+	}
+
+	var req map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"detail": "invalid json"})
+		return
+	}
+	enabled, ok := fieldBoolOptional(req, "enabled")
+	if !ok {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"detail": "enabled is required"})
+		return
+	}
+
+	var current bool
+	err := h.Store.Update(func(c *config.Config) error {
+		for i, acc := range c.Accounts {
+			if !accountMatchesIdentifier(acc, identifier) {
+				continue
+			}
+			c.Accounts[i].Disabled = !enabled
+			current = c.Accounts[i].IsEnabled()
+			return nil
+		}
+		return newRequestError("账号不存在")
+	})
+	if err != nil {
+		if detail, ok := requestErrorDetail(err); ok {
+			writeJSON(w, http.StatusNotFound, map[string]any{"detail": detail})
+			return
+		}
+		writeJSON(w, http.StatusBadRequest, map[string]any{"detail": err.Error()})
+		return
+	}
+	h.Pool.Reset()
+	writeJSON(w, http.StatusOK, map[string]any{"success": true, "enabled": current})
 }

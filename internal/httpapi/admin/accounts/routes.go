@@ -14,6 +14,7 @@ func RegisterRoutes(r chi.Router, h *Handler) {
 	r.Post("/accounts", h.addAccount)
 	r.Put("/accounts/{identifier}", h.updateAccount)
 	r.Delete("/accounts/{identifier}", h.deleteAccount)
+	r.Put("/accounts/{identifier}/enabled", h.toggleAccountEnabled)
 	r.Get("/queue/status", h.queueStatus)
 	r.Post("/accounts/test", h.testSingleAccount)
 	r.Post("/accounts/test-all", h.testAllAccounts)
@@ -33,6 +34,9 @@ func (h *Handler) ListAccounts(w http.ResponseWriter, r *http.Request)  { h.list
 func (h *Handler) AddAccount(w http.ResponseWriter, r *http.Request)    { h.addAccount(w, r) }
 func (h *Handler) UpdateAccount(w http.ResponseWriter, r *http.Request) { h.updateAccount(w, r) }
 func (h *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request) { h.deleteAccount(w, r) }
+func (h *Handler) ToggleAccountEnabled(w http.ResponseWriter, r *http.Request) {
+	h.toggleAccountEnabled(w, r)
+}
 func (h *Handler) DeleteAllSessions(w http.ResponseWriter, r *http.Request) {
 	h.deleteAllSessions(w, r)
 }

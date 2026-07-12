@@ -192,17 +192,25 @@ func ExecuteNonStreamStartedWithRetry(ctx context.Context, ds DeepSeekCaller, a 
 }
 
 func canRetryOnAlternateAccount(ctx context.Context, a *auth.RequestAuth, outErr *assistantturn.OutputError, retryEnabled bool, attempted *bool) bool {
-	if outErr == nil || outErr.Status != http.StatusTooManyRequests {
+	if outErr == nil || !retryEnabled || a == nil || !a.UseConfigToken {
 		return false
 	}
-	if !retryEnabled || attempted == nil || *attempted {
+	if isUpstreamUnavailable(outErr) {
+		a.DisableAccount()
+		return a.SwitchAccount(ctx)
+	}
+	if outErr.Status != http.StatusTooManyRequests {
 		return false
 	}
-	if a == nil || !a.UseConfigToken {
+	if attempted == nil || *attempted {
 		return false
 	}
 	*attempted = true
 	return a.SwitchAccount(ctx)
+}
+
+func isUpstreamUnavailable(outErr *assistantturn.OutputError) bool {
+	return outErr != nil && outErr.Code == "upstream_unavailable"
 }
 
 func startStandardCompletionOnAlternateAccount(ctx context.Context, ds DeepSeekCaller, a *auth.RequestAuth, stdReq promptcompat.StandardRequest, opts Options, maxAttempts int) (StartResult, *assistantturn.OutputError) {

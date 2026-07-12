@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"ds2api/internal/assistantturn"
 	"ds2api/internal/auth"
 	"ds2api/internal/completionruntime"
 	"ds2api/internal/config"
@@ -48,6 +49,12 @@ func (h *Handler) handleResponsesStreamWithRetry(w http.ResponseWriter, r *http.
 		},
 		OnTerminal: func(attempts int) {
 			logResponsesStreamTerminal(streamRuntime, attempts)
+		},
+		EmptyOutputError: func() *assistantturn.OutputError {
+			if streamRuntime.finalErrorCode == "" {
+				return nil
+			}
+			return &assistantturn.OutputError{Status: streamRuntime.finalErrorStatus, Message: streamRuntime.finalErrorMessage, Code: streamRuntime.finalErrorCode}
 		},
 	})
 }

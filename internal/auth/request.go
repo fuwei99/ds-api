@@ -228,6 +228,38 @@ func (r *Resolver) MarkTokenInvalid(a *RequestAuth) {
 	_ = r.Store.UpdateAccountToken(a.AccountID, "")
 }
 
+// DisableAccount 持久化标记当前账号为禁用状态（Disabled=true）。
+// 禁用后的账号不再被号池调度，需管理员在 admin/webui 手动重新启用。
+// 用于命中 upstream_unavailable（账号被禁言）时自动隔离故障账号。
+func (r *Resolver) DisableAccount(a *RequestAuth) {
+	if !a.UseConfigToken || a.AccountID == "" {
+		return
+	}
+	identifier := a.AccountID
+	if err := r.Store.Update(func(c *config.Config) error {
+		for i, acc := range c.Accounts {
+			if acc.Identifier() != identifier {
+				continue
+			}
+			c.Accounts[i].Disabled = true
+			return nil
+		}
+		return nil
+	}); err != nil {
+		config.Logger.Error("[disable_account] failed to persist disabled flag", "account", identifier, "error", err)
+		return
+	}
+	a.Account.Disabled = true
+	config.Logger.Info("[disable_account] account disabled after upstream_unavailable", "account", identifier)
+}
+
+func (a *RequestAuth) DisableAccount() {
+	if a == nil || a.resolver == nil {
+		return
+	}
+	a.resolver.DisableAccount(a)
+}
+
 func (r *Resolver) SwitchAccount(ctx context.Context, a *RequestAuth) bool {
 	if !a.UseConfigToken {
 		return false

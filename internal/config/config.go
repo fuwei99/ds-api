@@ -36,6 +36,7 @@ type Account struct {
 	DeviceID string `json:"device_id,omitempty"`
 	ProxyID  string `json:"proxy_id,omitempty"`
 	PoolType string `json:"pool_type,omitempty"`
+	Disabled bool   `json:"disabled,omitempty"`
 }
 
 type APIKey struct {

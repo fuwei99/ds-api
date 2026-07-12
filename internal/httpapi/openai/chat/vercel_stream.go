@@ -226,8 +226,16 @@ func (h *Handler) handleVercelStreamSwitch(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	a := lease.Auth
+	disable, _ := req["disable"].(bool)
+	if disable && a.UseConfigToken {
+		a.DisableAccount()
+	}
 	if !a.UseConfigToken || !a.SwitchAccount(r.Context()) {
-		writeOpenAIErrorWithCode(w, http.StatusTooManyRequests, "Upstream account hit a rate limit and returned reasoning without visible output.", "upstream_empty_output")
+		if disable {
+			writeOpenAIErrorWithCode(w, http.StatusServiceUnavailable, "Upstream service is unavailable and returned no output.", "upstream_unavailable")
+		} else {
+			writeOpenAIErrorWithCode(w, http.StatusTooManyRequests, "Upstream account hit a rate limit and returned reasoning without visible output.", "upstream_empty_output")
+		}
 		return
 	}
 

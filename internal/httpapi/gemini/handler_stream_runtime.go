@@ -139,6 +139,12 @@ func (h *Handler) handleStreamGenerateContentWithRetry(w http.ResponseWriter, r 
 		OnRetryFailure: func(status int, message, _ string) {
 			runtime.sendErrorChunk(status, strings.TrimSpace(message))
 		},
+		EmptyOutputError: func() *assistantturn.OutputError {
+			if runtime.finalErrorCode == "" {
+				return nil
+			}
+			return &assistantturn.OutputError{Status: runtime.finalErrorStatus, Message: runtime.finalErrorMessage, Code: runtime.finalErrorCode}
+		},
 	})
 }
 

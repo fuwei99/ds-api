@@ -109,6 +109,12 @@ func (h *Handler) handleStreamWithRetry(w http.ResponseWriter, r *http.Request, 
 		OnTerminal: func(attempts int) {
 			logChatStreamTerminal(streamRuntime, attempts)
 		},
+		EmptyOutputError: func() *assistantturn.OutputError {
+			if streamRuntime.finalErrorCode == "" {
+				return nil
+			}
+			return &assistantturn.OutputError{Status: streamRuntime.finalErrorStatus, Message: streamRuntime.finalErrorMessage, Code: streamRuntime.finalErrorCode}
+		},
 	})
 }
 

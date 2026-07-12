@@ -85,14 +85,18 @@ async function fetchStreamPow(req, leaseID) {
   };
 }
 
-async function fetchStreamSwitch(req, leaseID) {
+async function fetchStreamSwitch(req, leaseID, options = {}) {
   const url = buildInternalGoURL(req);
   url.searchParams.set('__stream_switch', '1');
 
+  const switchBody = { lease_id: leaseID };
+  if (options.disable) {
+    switchBody.disable = true;
+  }
   const upstream = await fetch(url.toString(), {
     method: 'POST',
     headers: buildInternalGoHeaders(req, { withInternalToken: true, withContentType: true }),
-    body: Buffer.from(JSON.stringify({ lease_id: leaseID })),
+    body: Buffer.from(JSON.stringify(switchBody)),
   });
 
   const text = await upstream.text();

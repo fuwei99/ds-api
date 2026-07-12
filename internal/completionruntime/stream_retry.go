@@ -26,14 +26,15 @@ type StreamRetryOptions struct {
 }
 
 type StreamRetryHooks struct {
-	ConsumeAttempt  func(resp *http.Response, allowDeferEmpty bool) (terminalWritten bool, retryable bool)
-	Finalize        func(attempts int)
-	ParentMessageID func() int
-	OnRetry         func(attempts int)
-	OnRetryPrompt   func(prompt string)
-	OnRetryFailure  func(status int, message, code string)
-	OnAccountSwitch func(sessionID string)
-	OnTerminal      func(attempts int)
+	ConsumeAttempt   func(resp *http.Response, allowDeferEmpty bool) (terminalWritten bool, retryable bool)
+	Finalize         func(attempts int)
+	ParentMessageID  func() int
+	OnRetry          func(attempts int)
+	OnRetryPrompt    func(prompt string)
+	OnRetryFailure   func(status int, message, code string)
+	OnAccountSwitch  func(sessionID string)
+	OnTerminal       func(attempts int)
+	EmptyOutputError func() *assistantturn.OutputError
 }
 
 func ExecuteStreamWithRetry(ctx context.Context, ds DeepSeekCaller, a *auth.RequestAuth, initialResp *http.Response, payload map[string]any, pow string, opts StreamRetryOptions, hooks StreamRetryHooks) {
@@ -58,7 +59,7 @@ func ExecuteStreamWithRetry(ctx context.Context, ds DeepSeekCaller, a *auth.Requ
 	currentResp := initialResp
 	currentPayload := clonePayload(payload)
 	for {
-		allowAccountSwitch := opts.RetryEnabled && attempts >= retryMax && !accountSwitchAttempted && a != nil && a.UseConfigToken
+		allowAccountSwitch := opts.RetryEnabled && attempts >= retryMax && a != nil && a.UseConfigToken
 		terminalWritten, retryable := hooks.ConsumeAttempt(currentResp, opts.RetryEnabled && (attempts < retryMax || allowAccountSwitch))
 		if terminalWritten {
 			if hooks.OnTerminal != nil {
@@ -74,7 +75,8 @@ func ExecuteStreamWithRetry(ctx context.Context, ds DeepSeekCaller, a *auth.Requ
 		}
 
 		if attempts >= retryMax {
-			if canRetryOnAlternateAccount(ctx, a, &assistantturn.OutputError{Status: http.StatusTooManyRequests}, opts.RetryEnabled, &accountSwitchAttempted) {
+			emptyErr := buildEmptyOutputError(hooks)
+			if canRetryOnAlternateAccount(ctx, a, emptyErr, opts.RetryEnabled, &accountSwitchAttempted) {
 				switched, switchErr := startPayloadCompletionOnAlternateAccount(ctx, ds, a, payload, opts, maxAttempts)
 				if switchErr != nil {
 					if hooks.OnRetryFailure != nil {
@@ -83,7 +85,7 @@ func ExecuteStreamWithRetry(ctx context.Context, ds DeepSeekCaller, a *auth.Requ
 					return
 				}
 				if switched.Response != nil {
-					config.Logger.Info("[completion_runtime_account_switch_retry] retrying after 429", "surface", surface, "stream", opts.Stream, "account", a.AccountID)
+					config.Logger.Info("[completion_runtime_account_switch_retry] retrying after empty output", "surface", surface, "stream", opts.Stream, "account", a.AccountID, "error_code", emptyErr.Code)
 					currentResp = switched.Response
 					currentPayload = switched.Payload
 					pow = switched.Pow
@@ -199,6 +201,15 @@ func startPayloadCompletionOnAlternateAccount(ctx context.Context, ds DeepSeekCa
 		return StartResult{SessionID: sessionID, Payload: nextPayload, Pow: pow}, &assistantturn.OutputError{Status: http.StatusInternalServerError, Message: "Failed to get completion.", Code: "error"}
 	}
 	return StartResult{SessionID: sessionID, Payload: nextPayload, Pow: pow, Response: resp}, nil
+}
+
+func buildEmptyOutputError(hooks StreamRetryHooks) *assistantturn.OutputError {
+	if hooks.EmptyOutputError != nil {
+		if err := hooks.EmptyOutputError(); err != nil {
+			return err
+		}
+	}
+	return &assistantturn.OutputError{Status: http.StatusTooManyRequests}
 }
 
 func clonePayload(payload map[string]any) map[string]any {

@@ -22,6 +22,9 @@ func (p *Pool) canQueueLocked(target string, exclude map[string]bool, filter Acc
 		if !ok {
 			return false
 		}
+		if !acc.IsEnabled() {
+			return false
+		}
 		if filter != nil && !filter(acc) {
 			return false
 		}
@@ -36,6 +39,9 @@ func (p *Pool) canQueueLocked(target string, exclude map[string]bool, filter Acc
 		}
 		acc, ok := p.store.FindAccount(id)
 		if !ok {
+			continue
+		}
+		if !acc.IsEnabled() {
 			continue
 		}
 		if filter != nil && !filter(acc) {
