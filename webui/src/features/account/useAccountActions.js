@@ -8,8 +8,8 @@ export function useAccountActions({ apiFetch, t, onMessage, onRefresh, config, f
     const [editingAccount, setEditingAccount] = useState(null)
     const [newKey, setNewKey] = useState({ key: '', name: '', remark: '', tools_enabled: false })
     const [copiedKey, setCopiedKey] = useState(null)
-    const [newAccount, setNewAccount] = useState({ name: '', remark: '', email: '', mobile: '', password: '' })
-    const [editAccount, setEditAccount] = useState({ name: '', remark: '' })
+    const [newAccount, setNewAccount] = useState({ name: '', remark: '', email: '', mobile: '', password: '', pool_type: 'default' })
+    const [editAccount, setEditAccount] = useState({ name: '', remark: '', pool_type: 'default' })
     const [loading, setLoading] = useState(false)
     const [testing, setTesting] = useState({})
     const [testingAll, setTestingAll] = useState(false)
@@ -45,14 +45,14 @@ export function useAccountActions({ apiFetch, t, onMessage, onRefresh, config, f
     const openAddAccount = () => {
         setShowEditAccount(false)
         setEditingAccount(null)
-        setEditAccount({ name: '', remark: '' })
-        setNewAccount({ name: '', remark: '', email: '', mobile: '', password: '' })
+        setEditAccount({ name: '', remark: '', pool_type: 'default' })
+        setNewAccount({ name: '', remark: '', email: '', mobile: '', password: '', pool_type: 'default' })
         setShowAddAccount(true)
     }
 
     const closeAddAccount = () => {
         setShowAddAccount(false)
-        setNewAccount({ name: '', remark: '', email: '', mobile: '', password: '' })
+        setNewAccount({ name: '', remark: '', email: '', mobile: '', password: '', pool_type: 'default' })
     }
 
     const openEditAccount = (account) => {
@@ -68,6 +68,7 @@ export function useAccountActions({ apiFetch, t, onMessage, onRefresh, config, f
         setEditAccount({
             name: account?.name || '',
             remark: account?.remark || '',
+            pool_type: account?.pool_type || 'default',
         })
         setShowEditAccount(true)
     }
@@ -75,7 +76,7 @@ export function useAccountActions({ apiFetch, t, onMessage, onRefresh, config, f
     const closeEditAccount = () => {
         setShowEditAccount(false)
         setEditingAccount(null)
-        setEditAccount({ name: '', remark: '' })
+        setEditAccount({ name: '', remark: '', pool_type: 'default' })
     }
 
     const addKey = async () => {

@@ -35,6 +35,7 @@ type Account struct {
 	Token    string `json:"token,omitempty"`
 	DeviceID string `json:"device_id,omitempty"`
 	ProxyID  string `json:"proxy_id,omitempty"`
+	PoolType string `json:"pool_type,omitempty"`
 }
 
 type APIKey struct {
@@ -101,6 +102,7 @@ func (c *Config) NormalizeCredentials() {
 		c.Accounts[i].Name = strings.TrimSpace(c.Accounts[i].Name)
 		c.Accounts[i].Remark = strings.TrimSpace(c.Accounts[i].Remark)
 		c.Accounts[i].DeviceID = strings.TrimSpace(c.Accounts[i].DeviceID)
+		c.Accounts[i].PoolType = NormalizePoolType(c.Accounts[i].PoolType)
 	}
 
 	c.Vercel = NormalizeVercelConfig(c.Vercel)

@@ -54,7 +54,7 @@ func TestPoolRoundRobinWithConcurrentSlots(t *testing.T) {
 
 	order := make([]string, 0, 4)
 	for i := 0; i < 4; i++ {
-		acc, ok := pool.Acquire("", nil)
+		acc, ok := pool.Acquire("", nil, nil)
 		if !ok {
 			t.Fatalf("expected acquire success at step %d", i+1)
 		}
@@ -67,12 +67,12 @@ func TestPoolRoundRobinWithConcurrentSlots(t *testing.T) {
 		}
 	}
 
-	if _, ok := pool.Acquire("", nil); ok {
+	if _, ok := pool.Acquire("", nil, nil); ok {
 		t.Fatalf("expected acquire to fail when all inflight slots are occupied")
 	}
 
 	pool.Release("acc1@example.com")
-	acc, ok := pool.Acquire("", nil)
+	acc, ok := pool.Acquire("", nil, nil)
 	if !ok || acc.Identifier() != "acc1@example.com" {
 		t.Fatalf("expected reacquire acc1 after releasing one slot, got ok=%v id=%q", ok, acc.Identifier())
 	}
@@ -82,11 +82,11 @@ func TestPoolTargetAccountInflightLimit(t *testing.T) {
 	pool := newPoolForTest(t, "2")
 
 	for i := 0; i < 2; i++ {
-		if _, ok := pool.Acquire("acc1@example.com", nil); !ok {
+		if _, ok := pool.Acquire("acc1@example.com", nil, nil); !ok {
 			t.Fatalf("expected target acquire success at step %d", i+1)
 		}
 	}
-	if _, ok := pool.Acquire("acc1@example.com", nil); ok {
+	if _, ok := pool.Acquire("acc1@example.com", nil, nil); ok {
 		t.Fatalf("expected third acquire on same target to fail due to inflight limit")
 	}
 }
@@ -102,7 +102,7 @@ func TestPoolConcurrentAcquireDistribution(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			<-start
-			acc, ok := pool.Acquire("", nil)
+			acc, ok := pool.Acquire("", nil, nil)
 			if !ok {
 				results <- "FAIL"
 				return
@@ -206,7 +206,7 @@ func TestPoolDropsLegacyTokenOnlyAccountOnLoad(t *testing.T) {
 		t.Fatalf("unexpected available in pool status: %#v", status["available"])
 	}
 
-	if _, ok := pool.Acquire("", nil); ok {
+	if _, ok := pool.Acquire("", nil, nil); ok {
 		t.Fatalf("expected acquire to fail for token-only account")
 	}
 }
@@ -225,7 +225,7 @@ func TestPoolAcquireRotatesIntoTokenlessAccounts(t *testing.T) {
 
 	pool := NewPool(config.LoadStore())
 	for i, want := range []string{"acc1@example.com", "acc2@example.com", "acc3@example.com"} {
-		acc, ok := pool.Acquire("", nil)
+		acc, ok := pool.Acquire("", nil, nil)
 		if !ok {
 			t.Fatalf("expected acquire success at step %d", i+1)
 		}
@@ -238,7 +238,7 @@ func TestPoolAcquireRotatesIntoTokenlessAccounts(t *testing.T) {
 
 func TestPoolAcquireWaitQueuesAndSucceedsAfterRelease(t *testing.T) {
 	pool := newSingleAccountPoolForTest(t, "1")
-	first, ok := pool.Acquire("", nil)
+	first, ok := pool.Acquire("", nil, nil)
 	if !ok {
 		t.Fatal("expected first acquire to succeed")
 	}
@@ -251,7 +251,7 @@ func TestPoolAcquireWaitQueuesAndSucceedsAfterRelease(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	go func() {
-		acc, ok := pool.AcquireWait(ctx, "", nil)
+		acc, ok := pool.AcquireWait(ctx, "", nil, nil)
 		resCh <- result{id: acc.Identifier(), ok: ok}
 	}()
 
@@ -273,7 +273,7 @@ func TestPoolAcquireWaitQueuesAndSucceedsAfterRelease(t *testing.T) {
 
 func TestPoolAcquireWaitQueueLimitReturnsFalse(t *testing.T) {
 	pool := newSingleAccountPoolForTest(t, "1")
-	first, ok := pool.Acquire("", nil)
+	first, ok := pool.Acquire("", nil, nil)
 	if !ok {
 		t.Fatal("expected first acquire to succeed")
 	}
@@ -286,7 +286,7 @@ func TestPoolAcquireWaitQueueLimitReturnsFalse(t *testing.T) {
 	ctx1, cancel1 := context.WithTimeout(context.Background(), 1200*time.Millisecond)
 	defer cancel1()
 	go func() {
-		acc, ok := pool.AcquireWait(ctx1, "", nil)
+		acc, ok := pool.AcquireWait(ctx1, "", nil, nil)
 		firstWaiter <- result{id: acc.Identifier(), ok: ok}
 	}()
 	waitForWaitingCount(t, pool, 1)
@@ -294,7 +294,7 @@ func TestPoolAcquireWaitQueueLimitReturnsFalse(t *testing.T) {
 	ctx2, cancel2 := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel2()
 	start := time.Now()
-	if _, ok := pool.AcquireWait(ctx2, "", nil); ok {
+	if _, ok := pool.AcquireWait(ctx2, "", nil, nil); ok {
 		t.Fatal("expected second queued acquire to fail when queue is full")
 	}
 	if time.Since(start) > 120*time.Millisecond {

@@ -33,6 +33,7 @@ type RequestAuth struct {
 	TargetAccount  string
 	Account        config.Account
 	TriedAccounts  map[string]bool
+	ToolsEnabled   bool
 	resolver       *Resolver
 }
 
@@ -75,16 +76,20 @@ func (r *Resolver) Determine(req *http.Request) (*RequestAuth, error) {
 		}, nil
 	}
 	target := strings.TrimSpace(req.Header.Get("X-Ds2-Target-Account"))
-	a, err := r.acquireManagedRequestAuth(ctx, callerID, target)
+	toolsEnabled := r.Store.APIKeyToolsEnabled(callerKey)
+	a, err := r.acquireManagedRequestAuth(ctx, callerID, target, toolsEnabled)
 	if err != nil {
 		return nil, err
 	}
 	return a, nil
 }
 
-func (r *Resolver) acquireManagedRequestAuth(ctx context.Context, callerID, target string) (*RequestAuth, error) {
+func (r *Resolver) acquireManagedRequestAuth(ctx context.Context, callerID, target string, toolsEnabled bool) (*RequestAuth, error) {
 	tried := map[string]bool{}
 	var lastEnsureErr error
+	filter := account.AccountFilter(func(acc config.Account) bool {
+		return acc.MatchesPoolType(toolsEnabled)
+	})
 	for {
 		if target == "" && len(tried) >= len(r.Store.Accounts()) {
 			if lastEnsureErr != nil {
@@ -92,7 +97,7 @@ func (r *Resolver) acquireManagedRequestAuth(ctx context.Context, callerID, targ
 			}
 			return nil, ErrNoAccount
 		}
-		acc, ok := r.Pool.AcquireWait(ctx, target, tried)
+		acc, ok := r.Pool.AcquireWait(ctx, target, tried, filter)
 		if !ok {
 			if lastEnsureErr != nil {
 				return nil, lastEnsureErr
@@ -107,6 +112,7 @@ func (r *Resolver) acquireManagedRequestAuth(ctx context.Context, callerID, targ
 			TargetAccount:  target,
 			Account:        acc,
 			TriedAccounts:  tried,
+			ToolsEnabled:   toolsEnabled,
 			resolver:       r,
 		}
 
@@ -236,8 +242,11 @@ func (r *Resolver) SwitchAccount(ctx context.Context, a *RequestAuth) bool {
 		a.TriedAccounts[a.AccountID] = true
 		r.Pool.Release(a.AccountID)
 	}
+	filter := account.AccountFilter(func(acc config.Account) bool {
+		return acc.MatchesPoolType(a.ToolsEnabled)
+	})
 	for {
-		acc, ok := r.Pool.Acquire("", a.TriedAccounts)
+		acc, ok := r.Pool.Acquire("", a.TriedAccounts, filter)
 		if !ok {
 			return false
 		}

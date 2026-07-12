@@ -16,7 +16,7 @@ func TestPoolEmptyNoAccounts(t *testing.T) {
 	t.Setenv("DS2API_ACCOUNT_MAX_QUEUE", "")
 	t.Setenv("DS2API_CONFIG_JSON", `{"keys":["k1"],"accounts":[]}`)
 	pool := NewPool(config.LoadStore())
-	if _, ok := pool.Acquire("", nil); ok {
+	if _, ok := pool.Acquire("", nil, nil); ok {
 		t.Fatal("expected acquire to fail with no accounts")
 	}
 	status := pool.Status()
@@ -32,7 +32,7 @@ func TestPoolReleaseNonExistentAccount(t *testing.T) {
 
 func TestPoolReleaseAlreadyReleased(t *testing.T) {
 	pool := newPoolForTest(t, "2")
-	acc, ok := pool.Acquire("", nil)
+	acc, ok := pool.Acquire("", nil, nil)
 	if !ok {
 		t.Fatal("expected acquire success")
 	}
@@ -42,14 +42,14 @@ func TestPoolReleaseAlreadyReleased(t *testing.T) {
 
 func TestPoolAcquireTargetNotFound(t *testing.T) {
 	pool := newPoolForTest(t, "2")
-	if _, ok := pool.Acquire("nonexistent@example.com", nil); ok {
+	if _, ok := pool.Acquire("nonexistent@example.com", nil, nil); ok {
 		t.Fatal("expected acquire to fail for non-existent target")
 	}
 }
 
 func TestPoolAcquireWithExclusionList(t *testing.T) {
 	pool := newPoolForTest(t, "2")
-	acc, ok := pool.Acquire("", map[string]bool{"acc1@example.com": true})
+	acc, ok := pool.Acquire("", map[string]bool{"acc1@example.com": true}, nil)
 	if !ok {
 		t.Fatal("expected acquire success with exclusion")
 	}
@@ -64,7 +64,7 @@ func TestPoolAcquireAllExcluded(t *testing.T) {
 	if _, ok := pool.Acquire("", map[string]bool{
 		"acc1@example.com": true,
 		"acc2@example.com": true,
-	}); ok {
+	}, nil); ok {
 		t.Fatal("expected acquire to fail when all accounts excluded")
 	}
 }
@@ -83,7 +83,7 @@ func TestPoolStatusFields(t *testing.T) {
 
 func TestPoolStatusAccountDetails(t *testing.T) {
 	pool := newPoolForTest(t, "2")
-	acc, _ := pool.Acquire("acc1@example.com", nil)
+	acc, _ := pool.Acquire("acc1@example.com", nil, nil)
 
 	status := pool.Status()
 	inUseAccounts, ok := status["in_use_accounts"].([]string)
@@ -110,7 +110,7 @@ func TestPoolStatusAccountDetails(t *testing.T) {
 func TestPoolAcquireWaitContextCancelled(t *testing.T) {
 	pool := newSingleAccountPoolForTest(t, "1")
 	// Exhaust the pool
-	first, ok := pool.Acquire("", nil)
+	first, ok := pool.Acquire("", nil, nil)
 	if !ok {
 		t.Fatal("expected first acquire to succeed")
 	}
@@ -122,7 +122,7 @@ func TestPoolAcquireWaitContextCancelled(t *testing.T) {
 	var waitOK bool
 	go func() {
 		defer wg.Done()
-		_, waitOK = pool.AcquireWait(ctx, "", nil)
+		_, waitOK = pool.AcquireWait(ctx, "", nil, nil)
 	}()
 
 	// Wait until queued
@@ -142,14 +142,14 @@ func TestPoolAcquireWaitContextCancelled(t *testing.T) {
 func TestPoolAcquireWaitTargetAccount(t *testing.T) {
 	pool := newPoolForTest(t, "1")
 	// Exhaust acc1
-	acc1, ok := pool.Acquire("acc1@example.com", nil)
+	acc1, ok := pool.Acquire("acc1@example.com", nil, nil)
 	if !ok {
 		t.Fatal("expected acquire acc1 success")
 	}
 
 	// Acquire acc2 directly (should succeed since acc2 is free)
 	ctx := context.Background()
-	acc2, ok := pool.AcquireWait(ctx, "acc2@example.com", nil)
+	acc2, ok := pool.AcquireWait(ctx, "acc2@example.com", nil, nil)
 	if !ok {
 		t.Fatal("expected acquire acc2 success via AcquireWait")
 	}
@@ -175,7 +175,7 @@ func TestPoolMaxQueueSizeOverride(t *testing.T) {
 func TestPoolMultipleAcquireReleaseCycles(t *testing.T) {
 	pool := newSingleAccountPoolForTest(t, "1")
 	for i := 0; i < 10; i++ {
-		acc, ok := pool.Acquire("", nil)
+		acc, ok := pool.Acquire("", nil, nil)
 		if !ok {
 			t.Fatalf("acquire failed at cycle %d", i)
 		}
@@ -185,7 +185,7 @@ func TestPoolMultipleAcquireReleaseCycles(t *testing.T) {
 
 func TestPoolConcurrentAcquireWait(t *testing.T) {
 	pool := newSingleAccountPoolForTest(t, "1")
-	first, ok := pool.Acquire("", nil)
+	first, ok := pool.Acquire("", nil, nil)
 	if !ok {
 		t.Fatal("expected first acquire success")
 	}
@@ -197,7 +197,7 @@ func TestPoolConcurrentAcquireWait(t *testing.T) {
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
-			_, ok := pool.AcquireWait(ctx, "", nil)
+			_, ok := pool.AcquireWait(ctx, "", nil, nil)
 			results <- ok
 		}()
 	}

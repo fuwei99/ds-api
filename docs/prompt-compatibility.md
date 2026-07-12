@@ -205,6 +205,32 @@ Claude 路径实现：
 - tools 对下游来说，本质上是 prompt 内规则
 - 不是 native tool schema transport
 
+### 6.2 按账号号池类型过滤调度
+
+每个 DeepSeek 账号可以独立配置号池类型（`pool_type`），控制该账号可被哪类工具请求调用：
+
+| `pool_type` | 含义 | `tools_enabled=true` 的 Key | `tools_enabled=false` 的 Key |
+|---|---|---|---|
+| `default` | 默认号池，允许无工具和含工具调用 | 可调用 | 可调用 |
+| `no_tools` | 仅允许无工具调用 | 不可调用 | 可调用 |
+| `tools_only` | 仅允许含工具调用 | 可调用 | 不可调用 |
+
+未设置 `pool_type` 的旧账号视为 `default`，行为不变。
+
+调度逻辑：
+
+- 受管 API Key 请求在获取账号时，会根据该 Key 的 `tools_enabled` 状态构造一个 filter，只调度到 `MatchesPoolType` 返回 `true` 的账号。
+- 轮询模式下跳过不匹配的账号；若所有可用账号都不匹配，直接返回 `no accounts` 错误，不会无限排队。
+- 排队等待仅在存在匹配候选账号时才允许；无匹配候选时不排队。
+- `X-Ds2-Target-Account` 指定账号时同样应用 filter：若指定账号的号池类型与请求工具开关不匹配，返回错误。
+- 账号切换重试（`SwitchAccount`）也会携带原始请求的 `ToolsEnabled`，保证切换后仍遵守号池约束。
+- 直传 token 模式不经过账号池，号池设置对其无影响。
+
+实现：
+- [internal/config/account.go](../internal/config/account.go) `Account.MatchesPoolType` / `NormalizePoolType`
+- [internal/account/pool_acquire.go](../internal/account/pool_acquire.go) `AccountFilter` / `Acquire` / `AcquireWait`
+- [internal/auth/request.go](../internal/auth/request.go) `acquireManagedRequestAuth` / `SwitchAccount`
+
 ## 7. assistant 的 tool_calls / reasoning 如何保留
 
 ### 7.1 reasoning 保留方式

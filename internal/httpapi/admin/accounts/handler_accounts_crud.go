@@ -65,6 +65,7 @@ func (h *Handler) listAccounts(w http.ResponseWriter, r *http.Request) {
 			"email":         acc.Email,
 			"mobile":        acc.Mobile,
 			"proxy_id":      acc.ProxyID,
+			"pool_type":     config.NormalizePoolType(acc.PoolType),
 			"has_password":  acc.Password != "",
 			"has_token":     token != "",
 			"token_preview": maskSecretPreview(token),
@@ -121,6 +122,7 @@ func (h *Handler) updateAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	name, nameOK := fieldStringOptional(req, "name")
 	remark, remarkOK := fieldStringOptional(req, "remark")
+	poolType, poolTypeOK := fieldStringOptional(req, "pool_type")
 
 	err := h.Store.Update(func(c *config.Config) error {
 		for i, acc := range c.Accounts {
@@ -132,6 +134,9 @@ func (h *Handler) updateAccount(w http.ResponseWriter, r *http.Request) {
 			}
 			if remarkOK {
 				c.Accounts[i].Remark = remark
+			}
+			if poolTypeOK {
+				c.Accounts[i].PoolType = config.NormalizePoolType(poolType)
 			}
 			return nil
 		}

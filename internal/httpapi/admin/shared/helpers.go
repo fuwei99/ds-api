@@ -171,6 +171,7 @@ func toAccount(m map[string]any) config.Account {
 		Mobile:   mobile,
 		Password: fieldString(m, "password"),
 		ProxyID:  fieldString(m, "proxy_id"),
+		PoolType: config.NormalizePoolType(fieldString(m, "pool_type")),
 	}
 }
 
@@ -340,6 +341,7 @@ func normalizeAccountForStorage(acc config.Account) config.Account {
 	acc.Email = strings.TrimSpace(acc.Email)
 	acc.Mobile = config.NormalizeMobileForStorage(acc.Mobile)
 	acc.ProxyID = strings.TrimSpace(acc.ProxyID)
+	acc.PoolType = config.NormalizePoolType(acc.PoolType)
 	return acc
 }
 

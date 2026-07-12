@@ -52,6 +52,18 @@ export default function EditAccountModal({
                             onChange={e => setEditAccount({ ...editAccount, remark: e.target.value })}
                         />
                     </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1.5">{t('accountManager.poolTypeLabel')}</label>
+                        <select
+                            className="input-field"
+                            value={editAccount.pool_type || 'default'}
+                            onChange={e => setEditAccount({ ...editAccount, pool_type: e.target.value })}
+                        >
+                            <option value="default">{t('accountManager.poolTypeDefault')}</option>
+                            <option value="no_tools">{t('accountManager.poolTypeNoTools')}</option>
+                            <option value="tools_only">{t('accountManager.poolTypeToolsOnly')}</option>
+                        </select>
+                    </div>
                     <div className="flex justify-end gap-2 pt-2">
                         <button onClick={onClose} className="px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors text-sm font-medium">{t('actions.cancel')}</button>
                         <button onClick={onSave} disabled={loading} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium disabled:opacity-50">

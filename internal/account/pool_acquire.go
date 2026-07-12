@@ -6,13 +6,19 @@ import (
 	"ds2api/internal/config"
 )
 
-func (p *Pool) Acquire(target string, exclude map[string]bool) (config.Account, bool) {
+// AccountFilter 决定某个账号是否可被当前请求调度。
+// nil 表示不做过滤（兼容旧调用方）。
+type AccountFilter func(config.Account) bool
+
+// Acquire 非阻塞获取一个满足 filter 的账号。
+func (p *Pool) Acquire(target string, exclude map[string]bool, filter AccountFilter) (config.Account, bool) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	return p.acquireLocked(target, normalizeExclude(exclude))
+	return p.acquireLocked(target, exclude, filter)
 }
 
-func (p *Pool) AcquireWait(ctx context.Context, target string, exclude map[string]bool) (config.Account, bool) {
+// AcquireWait 阻塞等待获取一个满足 filter 的账号。
+func (p *Pool) AcquireWait(ctx context.Context, target string, exclude map[string]bool, filter AccountFilter) (config.Account, bool) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -23,11 +29,11 @@ func (p *Pool) AcquireWait(ctx context.Context, target string, exclude map[strin
 		}
 
 		p.mu.Lock()
-		if acc, ok := p.acquireLocked(target, exclude); ok {
+		if acc, ok := p.acquireLocked(target, exclude, filter); ok {
 			p.mu.Unlock()
 			return acc, true
 		}
-		if !p.canQueueLocked(target, exclude) {
+		if !p.canQueueLocked(target, exclude, filter) {
 			p.mu.Unlock()
 			return config.Account{}, false
 		}
@@ -46,7 +52,7 @@ func (p *Pool) AcquireWait(ctx context.Context, target string, exclude map[strin
 	}
 }
 
-func (p *Pool) acquireLocked(target string, exclude map[string]bool) (config.Account, bool) {
+func (p *Pool) acquireLocked(target string, exclude map[string]bool, filter AccountFilter) (config.Account, bool) {
 	if target != "" {
 		if exclude[target] || !p.canAcquireIDLocked(target) {
 			return config.Account{}, false
@@ -55,15 +61,18 @@ func (p *Pool) acquireLocked(target string, exclude map[string]bool) (config.Acc
 		if !ok {
 			return config.Account{}, false
 		}
+		if filter != nil && !filter(acc) {
+			return config.Account{}, false
+		}
 		p.inUse[target]++
 		p.bumpQueue(target)
 		return acc, true
 	}
 
-	return p.tryAcquire(exclude)
+	return p.tryAcquire(exclude, filter)
 }
 
-func (p *Pool) tryAcquire(exclude map[string]bool) (config.Account, bool) {
+func (p *Pool) tryAcquire(exclude map[string]bool, filter AccountFilter) (config.Account, bool) {
 	for i := 0; i < len(p.queue); i++ {
 		id := p.queue[i]
 		if exclude[id] || !p.canAcquireIDLocked(id) {
@@ -71,6 +80,9 @@ func (p *Pool) tryAcquire(exclude map[string]bool) (config.Account, bool) {
 		}
 		acc, ok := p.store.FindAccount(id)
 		if !ok {
+			continue
+		}
+		if filter != nil && !filter(acc) {
 			continue
 		}
 		p.inUse[id]++

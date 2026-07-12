@@ -164,6 +164,16 @@ export default function AccountsTable({
                                                     {t('accountManager.proxyBadge', { name: assignedProxy ? (assignedProxy.name || `${assignedProxy.host}:${assignedProxy.port}`) : acc.proxy_id })}
                                                 </span>
                                             )}
+                                            {acc.pool_type === 'no_tools' && (
+                                                <span className="font-mono bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded text-[10px]">
+                                                    {t('accountManager.poolBadgeNoTools')}
+                                                </span>
+                                            )}
+                                            {acc.pool_type === 'tools_only' && (
+                                                <span className="font-mono bg-purple-500/10 text-purple-500 px-1.5 py-0.5 rounded text-[10px]">
+                                                    {t('accountManager.poolBadgeToolsOnly')}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
