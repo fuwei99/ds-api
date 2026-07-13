@@ -64,7 +64,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist/docker-compose-bundle
-          cp docker-compose.yml docker-compose.dev.yml config.example.json .env.example dist/docker-compose-bundle/
+          cp docker-compose.yml config.example.json .env.example dist/docker-compose-bundle/
           tar -C dist/docker-compose-bundle -czf dist/docker-compose.tar.gz .
           rm -rf dist/docker-compose-bundle
 
