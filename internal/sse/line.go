@@ -2,6 +2,7 @@ package sse
 
 import (
 	"fmt"
+	"strings"
 )
 
 // LineResult is the normalized parse result for one DeepSeek SSE line.
@@ -50,6 +51,14 @@ func ParseDeepSeekContentLine(raw []byte, thinkingEnabled bool, currentType stri
 			NextType:      currentType,
 		}
 	}
+	if msg, ok := extractHintError(chunk); ok {
+		return LineResult{
+			Parsed:       true,
+			Stop:         true,
+			ErrorMessage: msg,
+			NextType:     currentType,
+		}
+	}
 	parts, detectionThinkingParts, finished, nextType := ParseSSEChunkForContentDetailed(chunk, thinkingEnabled, currentType)
 	parts = filterLeakedContentFilterParts(parts)
 	detectionThinkingParts = filterLeakedContentFilterParts(detectionThinkingParts)
@@ -63,4 +72,22 @@ func ParseDeepSeekContentLine(raw []byte, thinkingEnabled bool, currentType stri
 		NextType:                   nextType,
 		ResponseMessageID:          respMsgID,
 	}
+}
+
+// extractHintError detects DeepSeek "event: hint" error payloads such as
+// {"type":"error","content":"内容超长，请删减后再试","finish_reason":"input_exceeds_limit"}.
+// These arrive as ordinary data: lines but carry a top-level type=error with a
+// human-readable content field. Normal content chunks never have a top-level
+// type field (fragment types live inside nested v arrays), so this is safe.
+func extractHintError(chunk map[string]any) (string, bool) {
+	typeVal, _ := chunk["type"].(string)
+	if !strings.EqualFold(strings.TrimSpace(typeVal), "error") {
+		return "", false
+	}
+	content, _ := chunk["content"].(string)
+	content = strings.TrimSpace(content)
+	if content == "" {
+		return "", false
+	}
+	return content, true
 }

@@ -45,6 +45,7 @@ type Turn struct {
 	ParsedToolCalls   toolcall.ToolCallParseResult
 	CitationLinks     map[int]string
 	ContentFilter     bool
+	UpstreamError     string
 	ResponseMessageID int
 	StopReason        StopReason
 	Usage             Usage
@@ -83,6 +84,7 @@ type StreamSnapshot struct {
 	VisibleThinking       string
 	DetectionThinking     string
 	ContentFilter         bool
+	UpstreamError         string
 	CitationLinks         map[int]string
 	ResponseMessageID     int
 	AlreadyEmittedCalls   bool
@@ -121,6 +123,7 @@ func BuildTurnFromCollected(result sse.CollectResult, opts BuildOptions) Turn {
 		ParsedToolCalls:   parsed,
 		CitationLinks:     result.CitationLinks,
 		ContentFilter:     result.ContentFilter,
+		UpstreamError:     result.UpstreamError,
 		ResponseMessageID: result.ResponseMessageID,
 		StopReason:        stopReason,
 	}
@@ -167,6 +170,7 @@ func BuildTurnFromStreamSnapshot(snapshot StreamSnapshot, opts BuildOptions) Tur
 		ParsedToolCalls:   parsed,
 		CitationLinks:     snapshot.CitationLinks,
 		ContentFilter:     snapshot.ContentFilter,
+		UpstreamError:     snapshot.UpstreamError,
 		ResponseMessageID: snapshot.ResponseMessageID,
 		StopReason:        stopReason,
 	}
@@ -206,6 +210,13 @@ func ValidateTurn(turn Turn, policy promptcompat.ToolChoicePolicy) *OutputError 
 	if strings.TrimSpace(turn.Text) != "" {
 		return nil
 	}
+	if strings.TrimSpace(turn.UpstreamError) != "" {
+		return &OutputError{
+			Status:  http.StatusBadRequest,
+			Message: turn.UpstreamError,
+			Code:    "upstream_error",
+		}
+	}
 	status, message, code := UpstreamEmptyOutputDetail(turn.ContentFilter, turn.Text, turn.Thinking)
 	return &OutputError{Status: status, Message: message, Code: code}
 }
@@ -228,6 +239,7 @@ func ShouldRetryEmptyOutput(turn Turn, attempts, maxAttempts int) bool {
 	return attempts < maxAttempts &&
 		!turn.ContentFilter &&
 		len(turn.ToolCalls) == 0 &&
+		strings.TrimSpace(turn.UpstreamError) == "" &&
 		strings.TrimSpace(turn.Text) == ""
 }
 

@@ -85,6 +85,7 @@ type geminiStreamRuntime struct {
 
 	accumulator       *assistantturn.Accumulator
 	contentFilter     bool
+	upstreamErr       string
 	responseMessageID int
 	finalErrorStatus  int
 	finalErrorMessage string
@@ -261,6 +262,9 @@ func (s *geminiStreamRuntime) onParsed(parsed sse.LineResult) streamengine.Parse
 		if parsed.ContentFilter {
 			s.contentFilter = true
 		}
+		if parsed.ErrorMessage != "" {
+			s.upstreamErr = parsed.ErrorMessage
+		}
 		return streamengine.ParsedDecision{Stop: true}
 	}
 
@@ -323,6 +327,7 @@ func (s *geminiStreamRuntime) finalize(deferEmptyOutput bool) bool {
 		VisibleThinking:   thinking,
 		DetectionThinking: detectionThinking,
 		ContentFilter:     s.contentFilter,
+		UpstreamError:     s.upstreamErr,
 		ResponseMessageID: s.responseMessageID,
 	}, assistantturn.BuildOptions{
 		Model:                 s.model,

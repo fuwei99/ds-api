@@ -43,6 +43,7 @@ type chatStreamRuntime struct {
 	streamToolNames   map[int]string
 	accumulator       shared.StreamAccumulator
 	responseMessageID int
+	upstreamErr       string
 
 	finalThinking     string
 	finalText         string
@@ -226,6 +227,7 @@ func (s *chatStreamRuntime) finalize(finishReason string, deferEmptyOutput bool)
 		VisibleThinking:       finalThinking,
 		DetectionThinking:     finalToolDetectionThinking,
 		ContentFilter:         finishReason == "content_filter",
+		UpstreamError:         s.upstreamErr,
 		ResponseMessageID:     s.responseMessageID,
 		AlreadyEmittedCalls:   s.toolCallsEmitted,
 		AlreadyEmittedToolRaw: s.toolCallsDoneEmitted,
@@ -313,7 +315,8 @@ func (s *chatStreamRuntime) onParsed(parsed sse.LineResult) streamengine.ParsedD
 		return streamengine.ParsedDecision{Stop: true, StopReason: streamengine.StopReasonHandlerRequested}
 	}
 	if parsed.ErrorMessage != "" {
-		return streamengine.ParsedDecision{Stop: true, StopReason: streamengine.StopReason("content_filter")}
+		s.upstreamErr = parsed.ErrorMessage
+		return streamengine.ParsedDecision{Stop: true, StopReason: streamengine.StopReason("upstream_error")}
 	}
 	if parsed.Stop {
 		return streamengine.ParsedDecision{Stop: true, StopReason: streamengine.StopReasonHandlerRequested}

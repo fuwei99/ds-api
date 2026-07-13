@@ -147,3 +147,31 @@ func TestFinalizeTurnContentFilterOutcome(t *testing.T) {
 		t.Fatalf("expected content filter failure, got %#v", outcome)
 	}
 }
+
+func TestBuildTurnFromCollectedUpstreamError(t *testing.T) {
+	turn := BuildTurnFromCollected(sse.CollectResult{
+		UpstreamError: "内容超长，请删减后再试",
+	}, BuildOptions{})
+	if turn.Error == nil || turn.Error.Status != http.StatusBadRequest ||
+		turn.Error.Code != "upstream_error" ||
+		turn.Error.Message != "内容超长，请删减后再试" {
+		t.Fatalf("expected upstream_error with original message, got %#v", turn.Error)
+	}
+}
+
+func TestBuildTurnFromStreamSnapshotUpstreamError(t *testing.T) {
+	turn := BuildTurnFromStreamSnapshot(StreamSnapshot{
+		UpstreamError: "内容超长，请删减后再试",
+	}, BuildOptions{})
+	if turn.Error == nil || turn.Error.Status != http.StatusBadRequest ||
+		turn.Error.Code != "upstream_error" {
+		t.Fatalf("expected upstream_error from snapshot, got %#v", turn.Error)
+	}
+}
+
+func TestShouldRetryEmptyOutputSkipsUpstreamError(t *testing.T) {
+	turn := Turn{UpstreamError: "内容超长，请删减后再试"}
+	if ShouldRetryEmptyOutput(turn, 0, 3) {
+		t.Fatalf("should not retry when upstream error is present")
+	}
+}

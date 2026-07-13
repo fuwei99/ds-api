@@ -153,3 +153,29 @@ func TestParseDeepSeekContentLineKeepsNewlineOnlyChunkBeforeLeakedContentFilter(
 		t.Fatalf("expected newline-only chunk preserved, got %#v", res.Parts)
 	}
 }
+
+func TestParseDeepSeekContentLineHintError(t *testing.T) {
+	res := ParseDeepSeekContentLine(
+		[]byte(`data: {"type":"error","content":"内容超长，请删减后再试","clear_response":true,"finish_reason":"input_exceeds_limit"}`),
+		false, "text",
+	)
+	if !res.Parsed || !res.Stop {
+		t.Fatalf("expected parsed stop result: %#v", res)
+	}
+	if res.ErrorMessage != "内容超长，请删减后再试" {
+		t.Fatalf("expected upstream error message, got %q", res.ErrorMessage)
+	}
+	if res.ContentFilter {
+		t.Fatalf("did not expect content filter for hint error")
+	}
+}
+
+func TestParseDeepSeekContentLineHintErrorNoContentIgnored(t *testing.T) {
+	res := ParseDeepSeekContentLine(
+		[]byte(`data: {"type":"error","content":""}`),
+		false, "text",
+	)
+	if !res.Parsed || res.Stop {
+		t.Fatalf("expected parsed non-stop result for empty-content hint: %#v", res)
+	}
+}
