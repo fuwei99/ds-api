@@ -13,6 +13,7 @@ export default function AccountsTable({
     deletingSessions,
     updatingProxy,
     togglingEnabled,
+    togglingAllEnabled,
     totalAccounts,
     page,
     pageSize,
@@ -27,6 +28,7 @@ export default function AccountsTable({
     onDeleteAllSessions,
     onUpdateAccountProxy,
     onToggleAccountEnabled,
+    onToggleAllAccountsEnabled,
     onPrevPage,
     onNextPage,
     onPageSizeChange,
@@ -71,6 +73,27 @@ export default function AccountsTable({
                     >
                         <Plus className="w-4 h-4" />
                         {t('accountManager.addAccount')}
+                    </button>
+                </div>
+            </div>
+
+            <div className="px-6 py-3 border-b border-border flex items-center justify-between gap-2">
+                <div />
+                <div className="flex flex-wrap gap-2">
+                    <button
+                        onClick={() => onToggleAllAccountsEnabled(false)}
+                        disabled={togglingAllEnabled || testingAll || totalAccounts === 0}
+                        className="flex items-center px-3 py-1.5 bg-destructive/10 text-destructive border border-destructive/20 rounded-lg hover:bg-destructive/20 transition-colors text-xs font-medium disabled:opacity-50"
+                    >
+                        {togglingAllEnabled && <span className="animate-spin mr-2">⟳</span>}
+                        {t('accountManager.disableAllAccounts')}
+                    </button>
+                    <button
+                        onClick={() => onToggleAllAccountsEnabled(true)}
+                        disabled={togglingAllEnabled || testingAll || totalAccounts === 0}
+                        className="flex items-center px-3 py-1.5 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors text-xs font-medium border border-border disabled:opacity-50"
+                    >
+                        {t('accountManager.enableAllAccounts')}
                     </button>
                 </div>
             </div>

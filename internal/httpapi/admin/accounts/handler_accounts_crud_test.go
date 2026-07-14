@@ -116,3 +116,51 @@ func TestListAccountsMasksTokenPreview(t *testing.T) {
 		t.Fatalf("expected masked token preview, got %q", got)
 	}
 }
+
+func TestBatchToggleAccountEnabledFlipsAllAccounts(t *testing.T) {
+	router := newHTTPAdminHarness(t, `{
+		"accounts":[
+			{"email":"a@example.com","password":"pwd"},
+			{"email":"b@example.com","password":"pwd","disabled":true},
+			{"mobile":"13800000000","password":"pwd"}
+		]
+	}`, &testingDSMock{})
+
+	// disable all
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, adminReq(http.MethodPost, "/accounts/enabled/batch", []byte(`{"enabled":false}`)))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("unexpected status: %d body=%s", rec.Code, rec.Body.String())
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if total, _ := payload["total"].(float64); total != 3 {
+		t.Fatalf("expected total=3, got %v", payload["total"])
+	}
+
+	router2 := newHTTPAdminHarness(t, `{
+		"accounts":[
+			{"email":"a@example.com","password":"pwd","disabled":true},
+			{"email":"b@example.com","password":"pwd"}
+		]
+	}`, &testingDSMock{})
+
+	// enable all
+	rec2 := httptest.NewRecorder()
+	router2.ServeHTTP(rec2, adminReq(http.MethodPost, "/accounts/enabled/batch", []byte(`{"enabled":true}`)))
+	if rec2.Code != http.StatusOK {
+		t.Fatalf("unexpected status: %d body=%s", rec2.Code, rec2.Body.String())
+	}
+}
+
+func TestBatchToggleAccountEnabledRejectsMissingField(t *testing.T) {
+	router := newHTTPAdminHarness(t, `{"accounts":[{"email":"a@example.com","password":"pwd"}]}`, &testingDSMock{})
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, adminReq(http.MethodPost, "/accounts/enabled/batch", []byte(`{}`)))
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for missing enabled, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}

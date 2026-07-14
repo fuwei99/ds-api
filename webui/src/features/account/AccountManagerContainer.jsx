@@ -58,6 +58,7 @@ export default function AccountManagerContainer({ config, onRefresh, onMessage, 
         deletingSessions,
         updatingProxy,
         togglingEnabled,
+        togglingAllEnabled,
         addKey,
         deleteKey,
         addAccount,
@@ -68,6 +69,7 @@ export default function AccountManagerContainer({ config, onRefresh, onMessage, 
         deleteAllSessions,
         updateAccountProxy,
         toggleAccountEnabled,
+        toggleAllAccountsEnabled,
     } = useAccountActions({
         apiFetch,
         t,
@@ -126,6 +128,7 @@ export default function AccountManagerContainer({ config, onRefresh, onMessage, 
                 deletingSessions={deletingSessions}
                 updatingProxy={updatingProxy}
                 togglingEnabled={togglingEnabled}
+                togglingAllEnabled={togglingAllEnabled}
                 totalAccounts={totalAccounts}
                 page={page}
                 pageSize={pageSize}
@@ -140,6 +143,7 @@ export default function AccountManagerContainer({ config, onRefresh, onMessage, 
                 onDeleteAllSessions={deleteAllSessions}
                 onUpdateAccountProxy={updateAccountProxy}
                 onToggleAccountEnabled={toggleAccountEnabled}
+                onToggleAllAccountsEnabled={toggleAllAccountsEnabled}
                 onPrevPage={() => fetchAccounts(page - 1)}
                 onNextPage={() => fetchAccounts(page + 1)}
                 onPageSizeChange={changePageSize}

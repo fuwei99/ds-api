@@ -223,3 +223,31 @@ func (h *Handler) toggleAccountEnabled(w http.ResponseWriter, r *http.Request) {
 	h.Pool.Reset()
 	writeJSON(w, http.StatusOK, map[string]any{"success": true, "enabled": current})
 }
+
+func (h *Handler) batchToggleAccountEnabled(w http.ResponseWriter, r *http.Request) {
+	var req map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"detail": "invalid json"})
+		return
+	}
+	enabled, ok := fieldBoolOptional(req, "enabled")
+	if !ok {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"detail": "enabled is required"})
+		return
+	}
+
+	var total int
+	err := h.Store.Update(func(c *config.Config) error {
+		total = len(c.Accounts)
+		for i := range c.Accounts {
+			c.Accounts[i].Disabled = !enabled
+		}
+		return nil
+	})
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"detail": err.Error()})
+		return
+	}
+	h.Pool.Reset()
+	writeJSON(w, http.StatusOK, map[string]any{"success": true, "total": total, "enabled": enabled})
+}

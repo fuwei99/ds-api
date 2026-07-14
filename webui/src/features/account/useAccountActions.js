@@ -18,6 +18,7 @@ export function useAccountActions({ apiFetch, t, onMessage, onRefresh, config, f
     const [deletingSessions, setDeletingSessions] = useState({})
     const [updatingProxy, setUpdatingProxy] = useState({})
     const [togglingEnabled, setTogglingEnabled] = useState({})
+    const [togglingAllEnabled, setTogglingAllEnabled] = useState(false)
 
     const openAddKey = () => {
         setEditingKey(null)
@@ -377,6 +378,38 @@ export function useAccountActions({ apiFetch, t, onMessage, onRefresh, config, f
         }
     }
 
+    const toggleAllAccountsEnabled = async (enabled) => {
+        if (!enabled && !confirm(t('accountManager.disableAllAccountsConfirm'))) return
+        const allAccounts = config.accounts || []
+        if (allAccounts.length === 0) return
+
+        setTogglingAllEnabled(true)
+        try {
+            const res = await apiFetch('/admin/accounts/enabled/batch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled }),
+            })
+            const data = await res.json()
+            if (!res.ok) {
+                onMessage('error', data.detail || t('messages.requestFailed'))
+                return
+            }
+            onMessage(
+                'success',
+                enabled
+                    ? t('accountManager.enableAllAccountsSuccess', { success: data.total, total: data.total })
+                    : t('accountManager.disableAllAccountsSuccess', { success: data.total, total: data.total })
+            )
+            fetchAccounts()
+            onRefresh()
+        } catch (_err) {
+            onMessage('error', t('messages.networkError'))
+        } finally {
+            setTogglingAllEnabled(false)
+        }
+    }
+
     return {
         showAddKey,
         openAddKey,
@@ -406,6 +439,7 @@ export function useAccountActions({ apiFetch, t, onMessage, onRefresh, config, f
         deletingSessions,
         updatingProxy,
         togglingEnabled,
+        togglingAllEnabled,
         addKey,
         deleteKey,
         addAccount,
@@ -416,5 +450,6 @@ export function useAccountActions({ apiFetch, t, onMessage, onRefresh, config, f
         deleteAllSessions,
         updateAccountProxy,
         toggleAccountEnabled,
+        toggleAllAccountsEnabled,
     }
 }
