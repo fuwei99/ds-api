@@ -421,6 +421,7 @@
         "currentInputFileWarning": "Expert mode does not support file uploads; not recommended to enable",
         "expertPromptSegmentTitle": "Expert Prompt Segmentation",
         "expertPromptSegmentDesc": "Only applies to expert models. When the prompt exceeds the character threshold, it is automatically split at role boundaries and sent in segments: earlier segments are sent and then stopped, the final segment returns normally.",
+        "expertPromptSegmentWarning": "Enabling this will cause a ~5 second delay when sending long text. In the current version this feature only works in mainland China network environments. For overseas deployments, please disable this feature for now.",
         "expertPromptSegmentEnabled": "Enable prompt segmentation",
         "expertPromptSegmentMaxChars": "Segmentation threshold (characters)",
         "expertPromptSegmentMaxCharsHelp": "Default 90000. Segmentation triggers when this is exceeded. Not recommended to set above 90000.",

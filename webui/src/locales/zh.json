@@ -421,6 +421,7 @@
         "currentInputFileWarning": "目前专家模式不支持文件上传，不建议开启",
         "expertPromptSegmentTitle": "专家模式提示词分段",
         "expertPromptSegmentDesc": "仅对专家模型生效。当提示词字符数超过阈值时，自动按角色边界分段发送：前几段发送后立即停止生成，最后一段正常返回。",
+        "expertPromptSegmentWarning": "开启后发送超长文本会有5秒左右的延迟。当前版本此功能仅国内网络环境可以正常工作。外网环境部署请暂时关闭此功能",
         "expertPromptSegmentEnabled": "启用提示词分段",
         "expertPromptSegmentMaxChars": "分段阈值（字符数）",
         "expertPromptSegmentMaxCharsHelp": "默认 90000，超过此字符数将触发分段。不建议设置超过90000",

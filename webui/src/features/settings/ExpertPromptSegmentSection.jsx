@@ -4,6 +4,7 @@ export default function ExpertPromptSegmentSection({ t, form, setForm }) {
             <div className="space-y-1">
                 <h3 className="font-semibold">{t('settings.expertPromptSegmentTitle')}</h3>
                 <p className="text-sm text-muted-foreground">{t('settings.expertPromptSegmentDesc')}</p>
+                <p className="text-xs text-amber-600 dark:text-amber-400">{t('settings.expertPromptSegmentWarning')}</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <label className="flex items-start gap-3 rounded-lg border border-border bg-background/60 p-4">
