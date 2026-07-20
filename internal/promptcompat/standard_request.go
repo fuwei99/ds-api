@@ -23,6 +23,11 @@ type StandardRequest struct {
 	RefFileIDs              []string
 	RefFileTokens           int
 	PassThrough             map[string]any
+	// FileTagSuffix 是在响应末尾追加的 <||file:name:email:id||> 标签文本。
+	// 由 <||fileid:True||> 控制标签触发：当 force_upload 上传成功后，
+	// chat handler 把新文件 ID 和实际账号 email 拼成标签存入此处，
+	// 流式 / 非流式响应在收尾时将其追加到输出内容末尾。
+	FileTagSuffix string
 }
 
 type ToolChoiceMode string

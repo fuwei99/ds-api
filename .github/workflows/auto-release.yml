@@ -1,0 +1,24 @@
+name: Auto Release
+
+# 当推送 v* 版本标签时自动创建 GitHub Release。
+# 与 auto-docker.yml 并行触发；release 发布后还会联动已有的
+# release-artifacts.yml（on: release published）构建二进制产物。
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          echo "Creating release for $TAG"
+          gh release create "$TAG" --title "$TAG" --generate-notes

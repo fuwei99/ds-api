@@ -52,6 +52,10 @@ type chatStreamRuntime struct {
 	finalErrorStatus  int
 	finalErrorMessage string
 	finalErrorCode    string
+
+	// fileTagSuffix 是在流式收尾时追加到输出的 <||file:name:email:id||> 标签。
+	// 由 <||fileid:True||> 触发，在 finish chunk 之前以 content delta 发出。
+	fileTagSuffix string
 }
 
 type chatDeltaBatch struct {
@@ -96,6 +100,7 @@ func newChatStreamRuntime(
 	toolChoice promptcompat.ToolChoicePolicy,
 	bufferToolContent bool,
 	emitEarlyToolDeltas bool,
+	fileTagSuffix string,
 ) *chatStreamRuntime {
 	return &chatStreamRuntime{
 		w:                     w,
@@ -115,6 +120,7 @@ func newChatStreamRuntime(
 		emitEarlyToolDeltas:   emitEarlyToolDeltas,
 		streamToolCallIDs:     map[int]string{},
 		streamToolNames:       map[int]string{},
+		fileTagSuffix:         fileTagSuffix,
 		accumulator: shared.StreamAccumulator{
 			ThinkingEnabled:       thinkingEnabled,
 			SearchEnabled:         searchEnabled,
@@ -290,6 +296,11 @@ func (s *chatStreamRuntime) finalize(finishReason string, deferEmptyOutput bool)
 	usage := assistantturn.OpenAIChatUsage(turn)
 	s.finalFinishReason = outcome.FinishReason
 	s.finalUsage = usage
+	// <||fileid:True||> 触发：在 finish chunk 之前把文件 ID 标签作为 content delta 发出，
+	// 时序为 content -> fileTag content -> finish chunk -> [DONE]，符合 OpenAI 流式协议。
+	if s.fileTagSuffix != "" {
+		s.sendDelta(map[string]any{"content": s.fileTagSuffix})
+	}
 	s.sendChunk(openaifmt.BuildChatStreamChunk(
 		s.completionID,
 		s.created,

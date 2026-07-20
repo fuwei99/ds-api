@@ -52,6 +52,7 @@ func TestConsumeChatStreamAttemptMarksContextCancelledState(t *testing.T) {
 		promptcompat.DefaultToolChoicePolicy(),
 		false,
 		false,
+		"",
 	)
 	resp := makeOpenAISSEHTTPResponse(
 		`data: {"p":"response/content","v":"hello"}`,

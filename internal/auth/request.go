@@ -332,6 +332,54 @@ func (a *RequestAuth) SwitchAccount(ctx context.Context) bool {
 	return a.resolver.SwitchAccount(ctx, a)
 }
 
+// SwitchToTargetAccount 把当前请求切换到指定 target 账号。
+// 用于 <||file:name:email:id||> 标签解析出的 email：标签 email 优先级
+// 高于 X-Ds2-Target-Account 请求头（后者在 Determine 阶段已处理）。
+//
+// 安全策略：先尝试 acquire 目标账号，成功后才 release 当前账号，
+// 避免切换失败后当前请求无可用账号。如果目标账号不可用则返回 false，
+// 调用方保持原账号继续执行（降级为不切换）。
+func (r *Resolver) SwitchToTargetAccount(ctx context.Context, a *RequestAuth, target string) bool {
+	target = strings.TrimSpace(target)
+	if target == "" || !a.UseConfigToken {
+		return false
+	}
+	if a.AccountID == target {
+		return true
+	}
+	previousID := a.AccountID
+	filter := account.AccountFilter(func(acc config.Account) bool {
+		return acc.MatchesPoolType(a.ToolsEnabled)
+	})
+	// 先 acquire 目标账号（空 exclude：我们要的就是这个特定账号）。
+	acc, ok := r.Pool.AcquireWait(ctx, target, map[string]bool{}, filter)
+	if !ok {
+		return false
+	}
+	// acquire 成功后再 release 旧账号，避免切换失败导致无账号可用。
+	if previousID != "" {
+		r.Pool.Release(previousID)
+	}
+	if a.TriedAccounts == nil {
+		a.TriedAccounts = map[string]bool{}
+	}
+	if previousID != "" {
+		a.TriedAccounts[previousID] = true
+	}
+	a.Account = acc
+	a.AccountID = acc.Identifier()
+	a.TargetAccount = target
+	a.DeepSeekToken = acc.Token
+	return true
+}
+
+func (a *RequestAuth) SwitchToTargetAccount(ctx context.Context, target string) bool {
+	if a == nil || a.resolver == nil {
+		return false
+	}
+	return a.resolver.SwitchToTargetAccount(ctx, a, target)
+}
+
 func (r *Resolver) Release(a *RequestAuth) {
 	if a == nil || !a.UseConfigToken || a.AccountID == "" {
 		return

@@ -28,6 +28,7 @@ func TestChatStreamKeepAliveUsesCommentOnly(t *testing.T) {
 		promptcompat.DefaultToolChoicePolicy(),
 		false,
 		false,
+		"",
 	)
 
 	runtime.sendKeepAlive()
@@ -63,6 +64,7 @@ func TestChatStreamFinalizeEnforcesRequiredToolChoice(t *testing.T) {
 		promptcompat.ToolChoicePolicy{Mode: promptcompat.ToolChoiceRequired},
 		true,
 		false,
+		"",
 	)
 
 	if !runtime.finalize("stop", false) {
