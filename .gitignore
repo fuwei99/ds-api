@@ -1,0 +1,83 @@
+*.bak
+config.json
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+opencode.json
+
+# Logs
+*.log
+logs/
+artifacts/
+
+# Vercel
+.vercel
+
+# Node.js / Frontend
+node_modules/
+webui/node_modules/
+webui/dist/
+.npm
+.pnpm-store/
+yarn.lock
+pnpm-lock.yaml
+
+# Build artifacts
+dist/
+*.tsbuildinfo
+.cache/
+.parcel-cache/
+static/admin/
+internal/webui/assets/admin/
+
+# Go compiled binaries
+ds2api
+ds2api-tests
+
+# Environment
+.env.local
+.env.*.local
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+*.coverprofile
+coverage*.out
+cover/
+
+# Misc
+.git/
+Thumbs.db
+
+# Claude Code
+.claude/
+CLAUDE.local.md
+
+# Local tool bootstrap cache
+.tmp/
+
+# Chat history
+data/
+.codex
+.roomodes
+
+# Mihomo proxy bridge binaries (download locally, never commit)
+/mihomo
+/mihomo.exe
+/bin/mihomo*
+mihomo_subscriptions.json
+
+# Local release/test packages
+dist/
+
+# 强制忽略 README（仓库是套壳代理，不要露馅）
+README.MD
+README.md

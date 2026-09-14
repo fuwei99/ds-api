@@ -1,0 +1,7 @@
+{
+  "mode": "standalone",
+  "text": "<|EPSE|tool_calls><|EPSE|invoke name=\"Write\"><|EPSE|parameter name=\"content\"><![CDATA[```python\nprint('hi')\n]]></|EPSE|parameter></|EPSE|invoke></|EPSE|tool_calls>",
+  "tool_names": [
+    "Write"
+  ]
+}

@@ -1,0 +1,19 @@
+# Windows / macOS（Docker Desktop）覆盖文件：host 网络模式不可用，
+# 回退到 bridge + 端口映射。
+#
+# 用法（Linux 服务器直接用 docker-compose.yml 即可，无需本文件）：
+#   docker compose -f docker-compose.yml -f docker-compose.windows.yml up -d
+#
+# 说明：
+#   - 代理桥的 mihomo 是容器内子进程，其 SOCKS5 监听（10801 起）与
+#     external-controller 都绑在容器自身的 127.0.0.1 上，bridge 网络下
+#     ds2api 照常访问，无需 host 网络。
+#   - 镜像已内置 CA 根证书，docker-compose.yml 里挂载的
+#     /etc/ssl/certs/ca-certificates.crt 是 Linux 宿主机的路径；若在
+#     Windows/Mac 上启动报 "bind mount source does not exist"，请把该行
+#     从 docker-compose.yml 的 volumes 中注释/删除（不影响拉取 HTTPS 订阅）。
+services:
+  ds2api:
+    network_mode: "bridge"
+    ports:
+      - "${DS2API_HOST_PORT:-6011}:5001"
