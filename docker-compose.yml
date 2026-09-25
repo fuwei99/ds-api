@@ -1,0 +1,29 @@
+services:
+  ds2api:
+    image: ghcr.io/ouqiting20/ds2api:latest
+    # image: ouqiting/ds2api:latest
+    container_name: ds2api
+    restart: always
+    user: "0:0"
+    env_file:
+      - .env
+    # 【规范】统一使用 host 网络模式：
+    # 代理桥的 SOCKS5 监听（10801 起，一号一端口）直接落在宿主机上，
+    # 避免 bridge 网络/端口映射隔离导致的 Connection Refused。
+    # 等效命令行：docker run -d --net=host ...
+    # 注意：host 模式仅适用于 Linux 宿主机（Docker Desktop for Windows/Mac 不支持）。
+    # 监听端口由 .env 中的 PORT 控制（默认 5001）；host 模式下 ports 映射不生效。
+    network_mode: host
+    volumes:
+      - ./config.json:/data/config.json   # 配置文件（持久化推荐路径）
+      - ./data:/app/data                  # webui 调用记录等运行数据持久化
+      # 【规范】默认挂载宿主机 CA 根证书，避免拉取 HTTPS 订阅时报
+      # x509: certificate signed by unknown authority。
+      - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
+    environment:
+      - TZ=Asia/Shanghai
+      - LOG_LEVEL=INFO
+      - DS2API_ADMIN_KEY=${DS2API_ADMIN_KEY:-ds2api}
+      - DS2API_CONFIG_PATH=/data/config.json
+      # 代理桥订阅与端口映射持久化（写入已挂载的 ./data 卷，避免更新容器后配置丢失）
+      - DS2API_MIHOMO_SUBSCRIPTIONS_PATH=/app/data/mihomo_subscriptions.json

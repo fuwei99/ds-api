@@ -1,0 +1,159 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"net"
+	"net/http"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+	"time"
+
+	"ds2api/internal/auth"
+	"ds2api/internal/config"
+	"ds2api/internal/server"
+	"ds2api/internal/webui"
+)
+
+func main() {
+	if err := config.LoadDotEnv(); err != nil {
+		config.Logger.Warn("[dotenv] load failed", "error", err)
+	}
+	config.RefreshLogger()
+	webui.EnsureBuiltOnStartup()
+	app, err := server.NewApp()
+	if err != nil {
+		config.Logger.Error("server initialization failed", "error", err)
+		os.Exit(1)
+	}
+
+	// 首次启动时若未配置 admin 密码（无 DS2API_ADMIN_KEY、无 admin password
+	// hash），自动生成一个安全随机密码并写入 Store（内存态，登录立即可用）。
+	// 注意：env-backed / Vercel 环境下该密码不落盘、重启会变更；这类环境应显式
+	// 设置 DS2API_ADMIN_KEY。
+	var initialAdminPassword string
+	if auth.UsingDefaultAdminKey(app.Store) {
+		pwd, genErr := auth.GenerateAdminPassword()
+		if genErr != nil {
+			config.Logger.Warn("failed to generate initial admin password", "error", genErr)
+		} else if updErr := app.Store.Update(func(c *config.Config) error {
+			c.Admin.PasswordHash = auth.HashAdminPassword(pwd)
+			return nil
+		}); updErr != nil {
+			config.Logger.Warn("failed to persist initial admin password", "error", updErr)
+		} else {
+			initialAdminPassword = pwd
+		}
+	}
+	port := strings.TrimSpace(os.Getenv("PORT"))
+	if port == "" {
+		port = "5001"
+	}
+
+	srv := &http.Server{
+		Addr:              "0.0.0.0:" + port,
+		Handler:           app.Router,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	localURL := fmt.Sprintf("http://127.0.0.1:%s", port)
+	lanIP := detectLANIPv4()
+	lanURL := ""
+	if lanIP != "" {
+		lanURL = fmt.Sprintf("http://%s:%s", lanIP, port)
+	}
+
+	// Start server in a goroutine so we can listen for shutdown signals.
+	go func() {
+		if lanURL != "" {
+			config.Logger.Info("starting ds2api", "bind", srv.Addr, "port", port, "local_url", localURL, "lan_url", lanURL, "lan_ip", lanIP)
+		} else {
+			config.Logger.Info("starting ds2api", "bind", srv.Addr, "port", port, "local_url", localURL)
+			config.Logger.Warn("lan ip not detected; check active network interfaces")
+		}
+		printAdminBanner(initialAdminPassword, localURL)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			config.Logger.Error("server stopped unexpectedly", "error", err)
+			os.Exit(1)
+		}
+	}()
+
+	// Wait for interrupt signal (Ctrl+C / SIGTERM).
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	sig := <-quit
+	config.Logger.Info("shutdown signal received", "signal", sig.String())
+
+	// Graceful shutdown: allow up to 10 seconds for in-flight requests to complete.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	shutdownErr := srv.Shutdown(ctx)
+	// Release pooled upstream/proxy connections after the HTTP server stops
+	// accepting work, so graceful shutdown does not leak transport resources.
+	app.DS.Close()
+	if err := shutdownErr; err != nil {
+		config.Logger.Error("graceful shutdown failed, forcing exit", "error", err)
+		os.Exit(1)
+	}
+	// 回收 Mihomo 代理桥子进程，避免残留占用本地端口。
+	if app.Mihomo != nil {
+		app.Mihomo.Stop()
+	}
+	// 关闭用量统计账本，确保最后的增量落盘。
+	if app.Usage != nil {
+		app.Usage.Close()
+	}
+	config.Logger.Info("server gracefully stopped")
+}
+
+// printAdminBanner 在 stdout 直接打印随机生成的初始 admin 密码 banner。
+// 绕过 slog 以保证对齐/醒目，任何 LOG_LEVEL 都能看到；仅在本次启动生成了
+// 随机密码时打印一次。
+func printAdminBanner(pwd, localURL string) {
+	if pwd == "" {
+		return
+	}
+	line := strings.Repeat("#", 50)
+	_, _ = fmt.Fprintln(os.Stdout, line)
+	_, _ = fmt.Fprintln(os.Stdout, "DS2api WebUI is ready")
+	_, _ = fmt.Fprintln(os.Stdout)
+	_, _ = fmt.Fprintln(os.Stdout, "➜ Initial password: "+pwd)
+	_, _ = fmt.Fprintln(os.Stdout, "➜ Change it after logging in")
+	_, _ = fmt.Fprintln(os.Stdout, "➜ local_url="+localURL)
+	_, _ = fmt.Fprintln(os.Stdout, line)
+}
+
+func detectLANIPv4() string {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return ""
+	}
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			default:
+				continue
+			}
+			ip = ip.To4()
+			if ip == nil || !ip.IsPrivate() {
+				continue
+			}
+			return ip.String()
+		}
+	}
+	return ""
+}

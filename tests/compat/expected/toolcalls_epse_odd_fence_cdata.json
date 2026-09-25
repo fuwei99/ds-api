@@ -1,0 +1,13 @@
+{
+  "calls": [
+    {
+      "name": "Write",
+      "input": {
+        "content": "```python\nprint('hi')\n"
+      }
+    }
+  ],
+  "sawToolCallSyntax": true,
+  "rejectedByPolicy": false,
+  "rejectedToolNames": []
+}
