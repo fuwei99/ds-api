@@ -1,0 +1,374 @@
+name: Release Artifacts
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to build/publish (e.g. v2.1.6)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: release-artifacts-${{ github.event.release.tag_name || github.event.inputs.release_tag }}
+  cancel-in-progress: false
+
+env:
+  GO_VERSION: "1.26.x"
+  NODE_VERSION: "24"
+
+jobs:
+  # 门禁与 WebUI 构建并行跑；两者都通过后才开始产出并上传任何 release 产物。
+  gates:
+    name: Release Blocking Gates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: go.sum
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: webui/package-lock.json
+
+      # The Node unit suite imports webui modules (the echarts-backed chart
+      # registration test), so the WebUI dependencies must be installed first.
+      - name: Install WebUI dependencies
+        run: npm ci --prefix webui --prefer-offline --no-audit
+
+      - name: Release Blocking Gates
+        run: |
+          ./tests/scripts/check-refactor-line-gate.sh
+          ./tests/scripts/run-unit-all.sh
+
+  webui:
+    name: Build WebUI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: webui/package-lock.json
+
+      - name: Install WebUI dependencies
+        run: npm ci --prefix webui --prefer-offline --no-audit
+
+      - name: Build WebUI
+        run: npm run build --prefix webui
+
+      - name: Pack WebUI build
+        run: tar -czf webui-admin.tar.gz static/admin
+
+      - name: Upload WebUI build
+        uses: actions/upload-artifact@v4
+        with:
+          name: webui-admin
+          path: webui-admin.tar.gz
+          retention-days: 1
+          if-no-files-found: error
+
+  # 第一批：最常用的三个平台，构建完立刻上传，用户此时就能下载。
+  binaries-priority:
+    name: Priority Binaries (linux amd64/arm64, windows amd64)
+    runs-on: ubuntu-latest
+    needs: [gates, webui]
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || github.event.inputs.release_tag }}
+      RELEASE_TARGETS_FILTER: "linux_amd64 linux_arm64 windows_amd64"
+      RELEASE_BUILD_JOBS: "3"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate release tag
+        run: |
+          set -euo pipefail
+          if [ -z "${RELEASE_TAG}" ]; then
+            echo "release tag is empty; set release_tag when using workflow_dispatch." >&2
+            exit 1
+          fi
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: go.sum
+
+      - name: Download WebUI build
+        uses: actions/download-artifact@v4
+        with:
+          name: webui-admin
+
+      - name: Unpack WebUI build
+        run: |
+          set -euo pipefail
+          tar -xzf webui-admin.tar.gz -C .
+          test -f static/admin/index.html
+
+      - name: Build Priority Archives
+        run: ./scripts/build-release-archives.sh
+
+      - name: Publish Priority Assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/publish-release-assets.sh "${RELEASE_TAG}" dist/*.tar.gz dist/*.zip
+
+      # Docker 作业直接复用本作业产出的 linux 压缩包，避免回读 release 时
+      # 资产可见性延迟导致的 "no assets to download"。
+      - name: Upload Linux archives for Docker job
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-dist
+          path: dist/ds2api_*_linux_*.tar.gz
+          retention-days: 1
+          if-no-files-found: error
+
+  # Docker 镜像直接复用第一批产出的 linux 压缩包，保证镜像与 release 产物同源。
+  docker:
+    name: Docker Images (GHCR + Docker Hub)
+    runs-on: ubuntu-latest
+    needs: [binaries-priority]
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || github.event.inputs.release_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Linux archives built by priority job
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-dist
+          path: dist/linux-dist
+
+      - name: Prepare Docker release inputs
+        run: |
+          set -euo pipefail
+          mkdir -p dist/docker-input
+          for arch in amd64 arm64; do
+            src="dist/linux-dist/ds2api_${RELEASE_TAG}_linux_${arch}.tar.gz"
+            if [ ! -s "${src}" ]; then
+              echo "missing linux ${arch} archive: ${src}" >&2
+              ls -l dist/linux-dist || true
+              exit 1
+            fi
+            cp "${src}" "dist/docker-input/linux_${arch}.tar.gz"
+          done
+          ls -l dist/docker-input
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Wait for GHCR endpoint
+        run: |
+          set -euo pipefail
+          for i in {1..6}; do
+            code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 https://ghcr.io/v2/ || true)"
+            if [ "${code}" = "200" ] || [ "${code}" = "401" ] || [ "${code}" = "405" ]; then
+              exit 0
+            fi
+            sleep "$((i * 10))"
+          done
+          echo "GHCR endpoint is unreachable after multiple retries (last status: ${code:-unknown})." >&2
+          exit 1
+
+      - name: Log in to GHCR (with retry)
+        run: |
+          set -euo pipefail
+          for i in {1..6}; do
+            if echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin; then
+              exit 0
+            fi
+            sleep "$((i * 10))"
+          done
+          echo "Failed to login to GHCR after multiple retries." >&2
+          exit 1
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta_release
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/ds2api
+          tags: |
+            type=raw,value=${{ env.RELEASE_TAG }}
+            type=raw,value=latest
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
+          DOCKER_BUILD_SUMMARY: "false"
+        with:
+          context: .
+          file: ./Dockerfile
+          target: runtime-from-dist
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta_release.outputs.tags }}
+          labels: ${{ steps.meta_release.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Export Docker image archives for release assets
+        run: |
+          set -euo pipefail
+          TAG="${RELEASE_TAG}"
+
+          docker buildx build \
+            --platform linux/amd64 \
+            --target runtime-from-dist \
+            --cache-from type=gha \
+            --output type=docker,dest="dist/ds2api_${TAG}_docker_linux_amd64.tar" \
+            .
+
+          docker buildx build \
+            --platform linux/arm64 \
+            --target runtime-from-dist \
+            --cache-from type=gha \
+            --output type=docker,dest="dist/ds2api_${TAG}_docker_linux_arm64.tar" \
+            .
+
+          gzip -f "dist/ds2api_${TAG}_docker_linux_amd64.tar"
+          gzip -f "dist/ds2api_${TAG}_docker_linux_arm64.tar"
+
+      - name: Build Docker Compose bundle
+        run: |
+          set -euo pipefail
+          mkdir -p dist/docker-compose-bundle
+          cp docker-compose.yml docker-compose.windows.yml config.example.json .env.example README.MD dist/docker-compose-bundle/
+          tar -C dist/docker-compose-bundle -czf dist/docker-compose.tar.gz .
+
+          mkdir -p dist/docker-compose-dockerhub-bundle
+          cp docker-compose.yml docker-compose.windows.yml config.example.json .env.example README.MD dist/docker-compose-dockerhub-bundle/
+          sed -i 's|^    image: ghcr.io/ouqiting20/ds2api:latest|    # image: ghcr.io/ouqiting20/ds2api:latest|' dist/docker-compose-dockerhub-bundle/docker-compose.yml
+          sed -i 's|^    # image: ouqiting/ds2api:latest|    image: ouqiting/ds2api:latest|' dist/docker-compose-dockerhub-bundle/docker-compose.yml
+          tar -C dist/docker-compose-dockerhub-bundle -czf dist/docker-compose_dockerhub.tar.gz .
+          rm -rf dist/docker-compose-bundle dist/docker-compose-dockerhub-bundle
+
+      - name: Publish Docker Assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          bash scripts/publish-release-assets.sh "${RELEASE_TAG}" \
+            "dist/ds2api_${RELEASE_TAG}_docker_linux_amd64.tar.gz" \
+            "dist/ds2api_${RELEASE_TAG}_docker_linux_arm64.tar.gz" \
+            dist/docker-compose.tar.gz \
+            dist/docker-compose_dockerhub.tar.gz
+
+  # 只等第一批把 release 建好，随后与 docker 并行；docker 失败不会挡住其余平台。
+  binaries-secondary:
+    name: Remaining Binaries (darwin amd64/arm64, windows arm64)
+    runs-on: ubuntu-latest
+    needs: [binaries-priority]
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || github.event.inputs.release_tag }}
+      RELEASE_TARGETS_FILTER: "darwin_amd64 darwin_arm64 windows_arm64"
+      RELEASE_BUILD_JOBS: "3"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: go.sum
+
+      - name: Download WebUI build
+        uses: actions/download-artifact@v4
+        with:
+          name: webui-admin
+
+      - name: Unpack WebUI build
+        run: |
+          set -euo pipefail
+          tar -xzf webui-admin.tar.gz -C .
+          test -f static/admin/index.html
+
+      - name: Build Remaining Archives
+        run: ./scripts/build-release-archives.sh
+
+      - name: Publish Remaining Assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/publish-release-assets.sh "${RELEASE_TAG}" dist/*.tar.gz dist/*.zip
+
+  # 最后统一生成校验和：直接对 release 上已存在的资产计算，覆盖全部批次。
+  finalize:
+    name: Checksums
+    runs-on: ubuntu-latest
+    needs: [binaries-priority, docker, binaries-secondary]
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || github.event.inputs.release_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 资产上传成功后在 release 查询接口上存在可见性延迟，先等全部资产可见再下载。
+      - name: Wait for published assets to be visible
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          bash scripts/wait-release-assets.sh "${RELEASE_TAG}" 600 \
+            "ds2api_${RELEASE_TAG}_linux_amd64.tar.gz" \
+            "ds2api_${RELEASE_TAG}_linux_arm64.tar.gz" \
+            "ds2api_${RELEASE_TAG}_darwin_amd64.tar.gz" \
+            "ds2api_${RELEASE_TAG}_darwin_arm64.tar.gz" \
+            "ds2api_${RELEASE_TAG}_windows_amd64.zip" \
+            "ds2api_${RELEASE_TAG}_windows_arm64.zip" \
+            "ds2api_${RELEASE_TAG}_docker_linux_amd64.tar.gz" \
+            "ds2api_${RELEASE_TAG}_docker_linux_arm64.tar.gz" \
+            "docker-compose.tar.gz" \
+            "docker-compose_dockerhub.tar.gz"
+
+      - name: Download published assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          gh release download "${RELEASE_TAG}" --dir dist --clobber \
+            --pattern "ds2api_${RELEASE_TAG}_*" \
+            --pattern "docker-compose*.tar.gz"
+
+      - name: Generate checksums
+        run: |
+          set -euo pipefail
+          (cd dist && sha256sum *.tar.gz *.zip > sha256sums.txt)
+          cat dist/sha256sums.txt
+
+      - name: Publish checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/publish-release-assets.sh "${RELEASE_TAG}" dist/sha256sums.txt

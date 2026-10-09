@@ -1,0 +1,172 @@
+name: Quality Gates
+
+on:
+  pull_request:
+  push:
+    branches:
+      - dev
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-gates-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: "1.26.x"
+  NODE_VERSION: "24"
+  GOLANGCI_LINT_VERSION: "v2.11.4"
+
+jobs:
+  lint-and-refactor:
+    name: Lint and Refactor Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: go.sum
+
+      - name: Setup golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          install-mode: binary
+          verify: true
+
+      - name: Go Format & Lint Gates
+        run: ./scripts/lint.sh
+
+      - name: Refactor Line Gate
+        run: ./tests/scripts/check-refactor-line-gate.sh
+
+  go-unit:
+    name: Go Unit (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest
+          - windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: go.sum
+
+      - name: Go Unit Gate
+        # -count=1 只禁用"测试结果"缓存，编译产物照样走构建缓存：
+        # 缓存恢复后编译变快，但未改动的包仍会真跑一遍，门禁不会退化成 (cached)。
+        run: ./tests/scripts/run-unit-go.sh -count=1
+
+  unit-all:
+    name: Unit Gates (Go + Node)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: go.sum
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: webui/package-lock.json
+
+      # The Node unit suite imports webui modules (the echarts-backed chart
+      # registration test), so the WebUI dependencies must be installed first.
+      - name: Install WebUI dependencies
+        run: npm ci --prefix webui --prefer-offline --no-audit
+
+      - name: Unit Gates (Go + Node)
+        run: ./tests/scripts/run-unit-all.sh
+
+  webui-build:
+    name: WebUI Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: webui/package-lock.json
+
+      - name: WebUI Build Gate
+        run: |
+          npm ci --prefix webui --prefer-offline --no-audit
+          npm run build --prefix webui
+
+  # 三个平台组并行跑，各自在独立 runner 上编译两个目标，覆盖全部 6 个发布目标。
+  # darwin 只是交叉编译，仍然跑在 ubuntu-latest 上，不占 macOS runner 名额。
+  # 本地不设过滤器即可跑全量；只想验证部分平台时用 CROSS_BUILD_TARGETS_FILTER 收窄。
+  cross-build:
+    name: Release Target Cross-Build (${{ matrix.label }})
+    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main') }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: linux
+            targets: "linux_amd64 linux_arm64"
+          - label: windows
+            targets: "windows_amd64 windows_arm64"
+          - label: darwin
+            targets: "darwin_amd64 darwin_arm64"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: go.sum
+
+      - name: Cross-Build Release Targets (${{ matrix.label }})
+        env:
+          CROSS_BUILD_JOBS: "2"
+          CROSS_BUILD_TARGETS_FILTER: ${{ matrix.targets }}
+        run: ./tests/scripts/check-cross-build.sh
+
+  # 并行组任一失败都要让这个检查失败：只靠 needs 会让本作业被跳过，
+  # 而被跳过的必需检查不会拦住合并，等于门禁被静默解除。
+  cross-build-gate:
+    name: Release Target Cross-Build
+    if: ${{ always() && github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main') }}
+    needs: [cross-build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Parallel Cross-Build Results
+        env:
+          MATRIX_RESULT: ${{ needs.cross-build.result }}
+        run: |
+          set -euo pipefail
+          if [ "${MATRIX_RESULT}" != "success" ]; then
+            echo "parallel cross-build result: ${MATRIX_RESULT}" >&2
+            exit 1
+          fi
