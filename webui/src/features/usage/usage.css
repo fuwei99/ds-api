@@ -1,0 +1,957 @@
+/* Semantic layout for the Token usage page.
+   Replaces the vendored DeepSeek hashed-class stylesheets (ds-rules.css /
+   ds-platform.css); variable names are kept for the dark-theme remapping. */
+
+:root {
+    --dsw-static-neutral-bluish-60: #f5f6f7;
+    --dsw-static-neutral-bluish-150: #e9ecf2;
+    --dsw-static-neutral-bluish-400: #adb2b8;
+    --dsw-static-neutral-bluish-600: #81858c;
+    --dsw-static-neutral-bluish-700: #61666b;
+    --dsw-static-neutral-bluish-1000: #0f1115;
+    --dsw-static-neutral-bluish-00: #fff;
+    --dsw-static-deepseek-100: #e4edfd;
+    --dsw-static-deepseek-500: #3964fe;
+    --dsw-font-family: "quote-cjk-patch", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+    --dsw-font-s-14: 14px/22px var(--dsw-font-family);
+    --dsw-font-s-strong-14: 500 14px/22px var(--dsw-font-family);
+    --dsw-font-base-strong-16: 500 16px/24px var(--dsw-font-family);
+    --ds-font-weight-strong: 600;
+    --ds-ease-in-out: cubic-bezier(.4, 0, .2, 1);
+    --ds-transition-duration: .2s;
+    --dsw-alias-bg-module-platform: var(--dsw-static-neutral-bluish-60);
+    --dsw-alias-label-primary: var(--dsw-static-neutral-bluish-1000);
+    --dsw-alias-label-secondary: var(--dsw-static-neutral-bluish-700);
+    --dsw-alias-label-tertiary: var(--dsw-static-neutral-bluish-600);
+    --dsw-alias-label-caption: var(--dsw-static-neutral-bluish-400);
+    --dsw-alias-border-l1: rgba(0, 0, 0, 0.04);
+    --dsw-alias-border-l2: rgba(0, 0, 0, 0.1);
+    --dsw-alias-bg-overlay: var(--dsw-static-neutral-bluish-150);
+    --dsw-alias-button-floating-fill: var(--dsw-static-neutral-bluish-00);
+    --dsw-alias-state-business-primary: var(--dsw-static-deepseek-500);
+    --dsw-alias-state-business-tertiary: var(--dsw-static-deepseek-100);
+}
+
+.usage-root {
+    background: #fff;
+    padding: 28px 24px 48px;
+    border-radius: 16px;
+    font-family: var(--dsw-font-family);
+    color: var(--dsw-alias-label-primary);
+}
+
+.usage-root button,
+.usage-root select {
+    font-family: var(--dsw-font-family);
+}
+
+/* ── page frame ─────────────────────────────────────────────── */
+
+.usage-page {
+    flex-grow: 1;
+    width: 100%;
+    max-width: 936px;
+    margin: 0 auto;
+}
+
+.usage-title {
+    font-weight: var(--ds-font-weight-strong);
+    color: var(--dsw-alias-label-primary);
+    margin-bottom: 8px;
+    font-size: 24px;
+    line-height: 32px;
+}
+
+.usage-banner-wrap {
+    margin-bottom: 16px;
+}
+
+.usage-banner-text {
+    color: var(--dsw-alias-label-tertiary);
+    font: var(--dsw-font-s-14);
+}
+
+.usage-section {
+    margin-bottom: 40px;
+}
+
+.usage-divider {
+    background-color: var(--dsw-alias-border-l2);
+    width: 100%;
+    height: 1px;
+    margin: 10px 0 32px;
+}
+
+/* ── summary cards ──────────────────────────────────────────── */
+
+.usage-summary-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 12px;
+}
+
+.usage-card {
+    box-sizing: border-box;
+    background-color: var(--dsw-alias-bg-module-platform);
+    border-radius: 16px;
+    flex: 1 1 0;
+    gap: 12px;
+    min-width: 0;
+    min-height: 100px;
+    padding: 16px 20px;
+    display: flex;
+}
+
+.usage-card-wide {
+    flex: 3 300px;
+}
+
+.usage-card-output {
+    flex: 1 0 304px;
+}
+
+.usage-card-mid {
+    flex: 2 200px;
+}
+
+.usage-card-inner {
+    flex-direction: column;
+    flex: auto;
+    justify-content: space-between;
+    align-self: stretch;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+    display: flex;
+}
+
+.usage-card-label-row {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    max-width: 100%;
+    display: flex;
+}
+
+.usage-card-label {
+    color: var(--dsw-alias-label-primary);
+    white-space: nowrap;
+    font-size: 14px;
+    line-height: 22px;
+    overflow: hidden;
+}
+
+.usage-card-value-row {
+    column-gap: 16px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px 16px;
+    width: 100%;
+    display: flex;
+}
+
+.usage-card-value-wrap {
+    flex-wrap: nowrap;
+    flex: auto;
+    align-items: flex-end;
+    gap: 12px;
+    min-width: 0;
+    display: flex;
+    white-space: nowrap;
+}
+
+.usage-card-value {
+    align-items: baseline;
+    gap: 6px;
+    display: inline-flex;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.usage-card-number {
+    color: var(--dsw-alias-label-primary);
+    font-variant-numeric: tabular-nums;
+    font-size: 29px;
+    font-weight: 600;
+    line-height: 36px;
+    white-space: nowrap;
+}
+
+/* ── toolbar ────────────────────────────────────────────────── */
+
+.usage-toolbar {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    margin-top: 40px;
+    margin-bottom: 24px;
+    display: flex;
+}
+
+.usage-select-wrap {
+    background-color: var(--dsw-alias-bg-module-platform);
+    min-width: 90px;
+    max-width: 280px;
+    height: 36px;
+    color: var(--dsw-alias-label-primary);
+    font: var(--dsw-font-s-14);
+    cursor: pointer;
+    user-select: none;
+    box-sizing: border-box;
+    transition: box-shadow var(--ds-transition-duration) var(--ds-ease-in-out), background-color var(--ds-transition-duration) var(--ds-ease-in-out);
+    border: none;
+    border-radius: 18px;
+    align-items: center;
+    gap: 12px;
+    padding: 0 14px;
+    display: inline-flex;
+}
+
+.usage-select-label {
+    color: var(--dsw-alias-label-tertiary);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.usage-select-sep {
+    background-color: var(--dsw-alias-border-l1);
+    flex-shrink: 0;
+    width: 1px;
+    height: 14px;
+}
+
+.usage-select-value {
+    position: relative;
+    white-space: nowrap;
+    min-width: 0;
+    flex: 1 1 auto;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* The caret overlays the select's right edge (pointer-events: none) so clicks
+   on it land on the select itself and open the menu natively. */
+.usage-select-caret {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--dsw-alias-label-primary);
+    flex-shrink: 0;
+    pointer-events: none;
+}
+
+.usage-toolbar-actions {
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+    display: flex;
+}
+
+/* ── metrics + charts ───────────────────────────────────────── */
+
+.usage-metrics-row {
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 24px;
+    display: flex;
+}
+
+.usage-chart-block {
+    flex-direction: column;
+    gap: 24px 12px;
+    display: flex;
+}
+
+.usage-chart-card {
+    box-sizing: border-box;
+    background-color: var(--dsw-alias-bg-module-platform);
+    border-radius: 16px;
+    flex-direction: column;
+    padding: 20px 20px 12px;
+    display: flex;
+}
+
+.usage-chart-body {
+    min-height: 335px;
+}
+
+.usage-chart-head {
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    min-width: 0;
+    margin-bottom: 13px;
+    display: flex;
+}
+
+.usage-chart-title-row {
+    column-gap: 4px;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 4px;
+    min-width: 0;
+    margin-top: 1px;
+    display: flex;
+    overflow: visible;
+}
+
+.usage-chart-title {
+    color: var(--dsw-alias-label-primary);
+    font: var(--dsw-font-s-strong-14);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.usage-chart-value {
+    color: var(--dsw-alias-label-secondary);
+    font: var(--dsw-font-s-14);
+    font-variant-numeric: tabular-nums;
+    word-break: keep-all;
+    flex-shrink: 0;
+}
+
+.usage-chart-actions {
+    flex: none;
+}
+
+/* ── per-model blocks ───────────────────────────────────────── */
+
+.usage-model-block {
+    flex-direction: column;
+    gap: 0 12px;
+    margin-top: 24px;
+    display: flex;
+}
+
+.usage-model-title {
+    color: var(--dsw-alias-label-primary);
+    font: var(--dsw-font-base-strong-16);
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.usage-model-body {
+    margin-bottom: 24px;
+}
+
+.usage-model-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.usage-model-card {
+    box-sizing: border-box;
+    background-color: var(--dsw-alias-bg-module-platform);
+    border-radius: 16px;
+    padding: 23px 20px 12px;
+}
+
+.usage-model-card-head {
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    display: flex;
+}
+
+.usage-model-card-label {
+    color: var(--dsw-alias-label-primary);
+    font: var(--dsw-font-s-strong-14);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.usage-model-card-value {
+    color: var(--dsw-alias-label-secondary);
+    font: var(--dsw-font-s-14);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+}
+
+.usage-model-card-chart {
+    position: relative;
+}
+
+/* ── shared controls ────────────────────────────────────────── */
+
+.usage-select {
+    border: none;
+    background: transparent;
+    color: var(--dsw-alias-label-primary);
+    font: var(--dsw-font-s-14);
+    cursor: pointer;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    outline: none;
+    /* right padding keeps the selected text clear of the overlaid ▾ caret */
+    padding: 0 18px 0 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* the ▾ caret is rendered as an overlay span; hide the native arrow */
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+.usage-select option {
+    color: #0f1115;
+    background: #fff;
+}
+
+.usage-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: #fff;
+    color: var(--dsw-alias-label-primary);
+    padding: 8px 14px;
+    border-radius: 18px;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: 0.2s ease;
+}
+
+.usage-btn:hover {
+    border-color: rgba(0, 0, 0, 0.16);
+    background: #fafbfc;
+}
+
+.usage-btn-primary {
+    background: var(--color-primary, var(--dsw-static-deepseek-500));
+    border-color: var(--color-primary, var(--dsw-static-deepseek-500));
+    color: var(--color-primary-foreground, #fff);
+    font-weight: 600;
+}
+
+.usage-btn-primary:hover {
+    filter: brightness(0.94);
+}
+
+.usage-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.usage-btn-danger {
+    background: #dc2626;
+    color: #fff;
+    border: 1px solid #dc2626;
+}
+
+.usage-btn-danger:hover {
+    background: #b91c1c;
+    border-color: #b91c1c;
+}
+
+.usage-segmented {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--dsw-alias-bg-overlay);
+    border-radius: 30px;
+    width: auto;
+    height: 24px;
+    padding: 0;
+    overflow: hidden;
+}
+
+.usage-seg-btn {
+    border: none;
+    background: transparent;
+    color: var(--dsw-alias-label-tertiary);
+    font: var(--dsw-font-s-14);
+    padding: 0 14px;
+    height: 24px;
+    cursor: pointer;
+    border-radius: 30px;
+    transition: 0.2s ease;
+}
+
+.usage-seg-btn.active {
+    background: var(--dsw-alias-button-floating-fill);
+    color: var(--dsw-alias-label-primary);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06);
+}
+
+.usage-segmented-orange .usage-seg-btn.active {
+    background: var(--color-primary, #f59e0b);
+    color: var(--color-primary-foreground, #fff);
+    box-shadow: 0 4px 10px hsl(45 93% 47% / 0.28);
+}
+
+.usage-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 14px;
+    color: var(--dsw-alias-label-tertiary);
+    font-size: 12px;
+}
+
+.usage-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.usage-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex: 0 0 auto;
+}
+
+.usage-status {
+    margin-top: 24px;
+    color: var(--dsw-alias-label-caption);
+    font-size: 12px;
+    text-align: center;
+}
+
+/* ── loading / error / empty ────────────────────────────────── */
+
+.usage-loading {
+    min-height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: var(--dsw-alias-label-tertiary);
+    font-size: 14px;
+    background: #fff;
+    border-radius: 16px;
+}
+
+.usage-spinner {
+    width: 22px;
+    height: 22px;
+    border: 3px solid rgba(57, 100, 254, 0.16);
+    border-top-color: var(--dsw-static-deepseek-500);
+    border-radius: 50%;
+    animation: usage-spin 0.8s linear infinite;
+}
+
+@keyframes usage-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── settings dialog ────────────────────────────────────────── */
+
+.usage-settings-btn {
+    padding: 8px 10px;
+    font-size: 16px;
+    line-height: 1;
+}
+
+.usage-settings-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.usage-settings-panel {
+    width: min(540px, calc(100vw - 40px));
+    max-height: 86vh;
+    overflow: auto;
+    background: var(--dsw-alias-bg-module-platform);
+    color: var(--dsw-alias-label-primary);
+    border: 1px solid var(--dsw-alias-border-l2);
+    border-radius: 16px;
+    padding: 20px 22px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
+}
+
+.usage-settings-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.usage-settings-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--dsw-alias-label-primary);
+}
+
+.usage-settings-back {
+    border: none;
+    background: transparent;
+    color: var(--dsw-alias-label-secondary);
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 2px;
+    flex: 0 0 auto;
+}
+
+.usage-settings-back:hover {
+    color: var(--dsw-alias-label-primary);
+}
+
+.usage-settings-close {
+    border: none;
+    background: transparent;
+    color: var(--dsw-alias-label-secondary);
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.usage-settings-body {
+    margin-top: 10px;
+}
+
+.usage-settings-warning {
+    margin: 10px 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(220, 38, 38, 0.35);
+    background: rgba(220, 38, 38, 0.08);
+    color: #b91c1c;
+    font-size: 13px;
+    line-height: 20px;
+}
+
+.usage-settings-group-title {
+    margin: 14px 0 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--dsw-alias-label-secondary);
+}
+
+.usage-settings-two {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.usage-settings-two label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--dsw-alias-label-secondary);
+}
+
+.usage-settings-two input {
+    min-width: 110px;
+}
+
+/* 命中率输入框右侧的 % 后缀。整组固定成与其它行控件相同的宽度，让 % 与输入框
+   一起右对齐，右侧边缘和上面的单价输入框对齐。 */
+.usage-settings-percent {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 150px;
+}
+
+.usage-settings-row .usage-settings-percent input[type="number"] {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.usage-settings-percent-sign {
+    flex: 0 0 auto;
+    font-size: 14px;
+    color: var(--dsw-alias-label-secondary);
+}
+
+.usage-settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 12px 0;
+    font-size: 14px;
+    color: var(--dsw-alias-label-primary);
+}
+
+.usage-settings-row select,
+.usage-settings-row input[type="number"],
+.usage-settings-row input[type="time"] {
+    min-width: 150px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--dsw-alias-border-l2);
+    background: var(--dsw-alias-button-floating-fill);
+    color: var(--dsw-alias-label-primary);
+    font-size: 14px;
+}
+
+.usage-settings-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.usage-settings-check input,
+.usage-settings-row > input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+}
+
+.usage-settings-row-switch {
+    align-items: center;
+    padding: 10px 12px;
+    margin: 6px 0 16px;
+    border: 1px solid var(--dsw-alias-border-l1);
+    border-radius: 12px;
+    background: var(--dsw-alias-button-floating-fill);
+}
+
+.usage-settings-row-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.usage-settings-row-label {
+    font-weight: 600;
+}
+
+.usage-settings-row-hint {
+    font-size: 12px;
+    line-height: 18px;
+    color: var(--dsw-alias-label-tertiary);
+}
+
+.usage-settings-entry {
+    gap: 4px;
+    padding: 8px 12px;
+}
+
+.usage-settings-entry-arrow {
+    font-size: 15px;
+    line-height: 1;
+    color: var(--dsw-alias-label-tertiary);
+}
+
+.usage-settings-foot {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 18px;
+}
+
+/* 导入按钮贴在底部左侧，「完成」保持右侧；用 margin-right:auto 把两者撑开，
+   不改动 foot 原本的 flex-end 对齐。 */
+.usage-settings-import {
+    margin-right: auto;
+}
+
+/* 真正的文件选择框隐藏，由「导入数据」按钮代理点击。 */
+.usage-settings-file {
+    display: none;
+}
+
+.usage-switch {
+    position: relative;
+    display: inline-block;
+    flex: 0 0 auto;
+    width: 40px;
+    height: 22px;
+    cursor: pointer;
+}
+
+.usage-switch input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.usage-switch-track {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: rgba(2, 14, 54, 0.22);
+    transition: background 0.2s ease;
+    pointer-events: none;
+}
+
+.usage-switch-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+    transition: transform 0.2s ease;
+}
+
+.usage-switch input:checked + .usage-switch-track {
+    background: var(--dsw-static-deepseek-500);
+}
+
+.usage-switch input:checked + .usage-switch-track .usage-switch-thumb {
+    transform: translateX(18px);
+}
+
+.usage-switch input:focus-visible + .usage-switch-track {
+    box-shadow: 0 0 0 3px rgba(57, 100, 254, 0.28);
+}
+
+/* ── confirm dialog ─────────────────────────────────────────── */
+
+.usage-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+}
+
+.usage-confirm-panel {
+    width: min(420px, calc(100vw - 40px));
+    background: var(--dsw-alias-bg-module-platform);
+    color: var(--dsw-alias-label-primary);
+    border: 1px solid var(--dsw-alias-border-l2);
+    border-radius: 16px;
+    padding: 22px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+}
+
+.usage-confirm-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.usage-confirm-message {
+    color: var(--dsw-alias-label-secondary);
+    font-size: 14px;
+    line-height: 22px;
+    margin-bottom: 18px;
+}
+
+.usage-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* ── dark theme ─────────────────────────────────────────────── */
+
+.usage-root.usage-theme-dark {
+    background: var(--color-background);
+    color: var(--color-foreground);
+    --dsw-static-neutral-bluish-60: var(--color-card);
+    --dsw-static-neutral-bluish-150: var(--color-muted);
+    --dsw-static-neutral-bluish-400: hsl(217 12% 62%);
+    --dsw-static-neutral-bluish-600: hsl(217 12% 62%);
+    --dsw-static-neutral-bluish-700: hsl(210 20% 92%);
+    --dsw-static-neutral-bluish-1000: var(--color-foreground);
+    --dsw-static-neutral-bluish-00: var(--color-card);
+    --dsw-static-deepseek-100: hsl(45 50% 93% / 0.12);
+    --dsw-static-deepseek-500: var(--color-primary);
+    --dsw-alias-bg-module-platform: var(--color-card);
+    --dsw-alias-label-primary: var(--color-foreground);
+    --dsw-alias-label-secondary: var(--color-secondary-foreground);
+    --dsw-alias-label-tertiary: var(--color-muted-foreground);
+    --dsw-alias-label-caption: var(--color-muted-foreground);
+    --dsw-alias-border-l1: var(--color-border);
+    --dsw-alias-border-l2: var(--color-border);
+    --dsw-alias-bg-overlay: var(--color-muted);
+    --dsw-alias-button-floating-fill: var(--color-card);
+    --dsw-alias-state-business-primary: var(--color-primary);
+    --dsw-alias-state-business-tertiary: hsl(45 50% 93% / 0.12);
+}
+
+.usage-root.usage-theme-dark .usage-model-card-label,
+.usage-root.usage-theme-dark .usage-model-title {
+    color: var(--color-foreground);
+}
+
+.usage-root.usage-theme-dark .usage-select option {
+    color: #f5f7fa;
+    background: #181e26;
+}
+
+.usage-root.usage-theme-dark .usage-btn {
+    border-color: var(--color-border);
+    background: var(--color-card);
+    color: var(--color-foreground);
+}
+
+.usage-root.usage-theme-dark .usage-btn:hover {
+    border-color: var(--color-ring);
+    background: var(--color-muted);
+}
+
+.usage-root.usage-theme-dark .usage-btn-primary {
+    background: var(--dsw-static-deepseek-500);
+    border-color: var(--dsw-static-deepseek-500);
+    color: #fff;
+}
+
+.usage-root.usage-theme-dark .usage-btn-primary:hover {
+    background: #1e49db;
+    border-color: #1e49db;
+}
+
+.usage-root.usage-theme-dark .usage-loading {
+    background: #12171d;
+    color: #a6adb7;
+}
+
+.usage-root.usage-theme-dark .usage-spinner {
+    border-color: rgba(57, 100, 254, 0.28);
+    border-top-color: var(--dsw-static-deepseek-500);
+}
+
+.usage-root.usage-theme-dark .usage-settings-warning {
+    color: #fca5a5;
+    background: rgba(220, 38, 38, 0.16);
+    border-color: rgba(220, 38, 38, 0.45);
+}
+
+.usage-root.usage-theme-dark .usage-switch-track {
+    background: rgba(255, 255, 255, 0.26);
+}
+
+.usage-root.usage-theme-dark .usage-switch-thumb {
+    background: #f5f7fa;
+}
+
+/* ── responsive ─────────────────────────────────────────────── */
+
+@media (max-width: 820px) {
+    .usage-root {
+        padding: 16px 12px 36px;
+    }
+    .usage-model-grid {
+        grid-template-columns: 1fr;
+    }
+    .usage-summary-row {
+        flex-direction: column;
+    }
+}

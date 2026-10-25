@@ -1,0 +1,4 @@
+# Normalize all text files to LF in the repo and working copy.
+# This keeps line endings consistent across Windows/macOS/Linux and
+# prevents phantom "modified" files caused by CRLF/LF mismatches.
+* text=auto eol=lf
